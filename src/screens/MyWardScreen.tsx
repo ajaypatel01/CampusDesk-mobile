@@ -43,11 +43,11 @@ export default function MyWardScreen() {
 
   const [currentYear, setCurrentYear] = useState<AcademicYear | null>(null);
   const [wards, setWards] = useState<Student[]>([]);
-  const [selectedWardId, setSelectedWardId] = useState<string | null>(null);
+  const [selectedWardId, setSelectedWardId] = useState('');
 
   const [homework, setHomework] = useState<WardHomeworkItem[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
-  const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
+  const [selectedExamId, setSelectedExamId] = useState('');
   const [marksheet, setMarksheet] = useState<Marksheet | null>(null);
   const [marksheetLoading, setMarksheetLoading] = useState(false);
 
@@ -59,7 +59,7 @@ export default function MyWardScreen() {
       const wardsRes = await studentsApi.myWards();
       const wardItems = wardsRes.items || [];
       setWards(wardItems);
-      const firstWardId = wardItems[0]?.id || null;
+      const firstWardId = wardItems[0]?.id || '';
       setSelectedWardId(prev => prev || firstWardId);
 
       if (user?.schoolId) {
@@ -91,7 +91,7 @@ export default function MyWardScreen() {
       .wardExams(selectedWardId, currentYear.id)
       .then(res => {
         setExams(res.items || []);
-        setSelectedExamId(null);
+        setSelectedExamId('');
         setMarksheet(null);
       })
       .catch(() => setExams([]));
@@ -108,7 +108,7 @@ export default function MyWardScreen() {
       .finally(() => setMarksheetLoading(false));
   }, [selectedExamId, selectedWardId]);
 
-  function onSelectExam(id: string | null) {
+  function onSelectExam(id: string) {
     setSelectedExamId(id);
     setMarksheet(null);
   }
@@ -201,7 +201,7 @@ export default function MyWardScreen() {
           <>
             <View style={styles.pickerWrapInline}>
               <Picker selectedValue={selectedExamId} onValueChange={v => onSelectExam(v)}>
-                <Picker.Item label="Select exam" value={null} />
+                <Picker.Item label="Select exam" value="" />
                 {exams.map(ex => (
                   <Picker.Item key={ex.id} label={ex.name} value={ex.id} />
                 ))}

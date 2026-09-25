@@ -11,7 +11,7 @@ type Row = Student & { enrollment?: { status: string } };
 export default function AdmissionsScreen() {
   const router = useRouter();
   const { currentSchool, academicYears, currentYear, loading: schoolLoading } = useSchool();
-  const [yearId, setYearId] = useState<string | null>(null);
+  const [yearId, setYearId] = useState('');
   const [rows, setRows] = useState<Row[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);

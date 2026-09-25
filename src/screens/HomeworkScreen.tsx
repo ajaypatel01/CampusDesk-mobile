@@ -14,7 +14,7 @@ function fmtDate(d: string) {
 export default function HomeworkScreen() {
   const { currentSchool, currentYear, loading: schoolLoading } = useSchool();
   const [grades, setGrades] = useState<GradeLevel[]>([]);
-  const [gradeId, setGradeId] = useState<string | null>(null);
+  const [gradeId, setGradeId] = useState('');
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -30,7 +30,7 @@ export default function HomeworkScreen() {
       .listGrades(currentSchool.id)
       .then(res => {
         setGrades(res.items || []);
-        setGradeId(res.items?.[0]?.id || null);
+        setGradeId(res.items?.[0]?.id || '');
       })
       .catch(() => setGrades([]));
   }, [currentSchool]);

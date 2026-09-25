@@ -7,14 +7,14 @@ import { resultsApi, studentsApi, academicApi, GradeLevel, Exam, Marksheet, Stud
 export default function ResultsScreen() {
   const { currentSchool, currentYear, loading: schoolLoading } = useSchool();
   const [grades, setGrades] = useState<GradeLevel[]>([]);
-  const [gradeId, setGradeId] = useState<string | null>(null);
+  const [gradeId, setGradeId] = useState('');
   const [exams, setExams] = useState<Exam[]>([]);
   const [loadingExams, setLoadingExams] = useState(false);
 
   const [studentQuery, setStudentQuery] = useState('');
   const [students, setStudents] = useState<Student[]>([]);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [selectedExamId, setSelectedExamId] = useState('');
   const [marksheet, setMarksheet] = useState<Marksheet | null>(null);
   const [marksheetLoading, setMarksheetLoading] = useState(false);
 
@@ -24,7 +24,7 @@ export default function ResultsScreen() {
       .listGrades(currentSchool.id)
       .then(res => {
         setGrades(res.items || []);
-        setGradeId(res.items?.[0]?.id || null);
+        setGradeId(res.items?.[0]?.id || '');
       })
       .catch(() => setGrades([]));
   }, [currentSchool]);
@@ -144,7 +144,7 @@ export default function ResultsScreen() {
         {selectedStudentId && (
           <View style={styles.pickerWrap}>
             <Picker selectedValue={selectedExamId} onValueChange={setSelectedExamId}>
-              <Picker.Item label="Select exam" value={null} />
+              <Picker.Item label="Select exam" value="" />
               {exams.map(ex => (
                 <Picker.Item key={ex.id} label={ex.name} value={ex.id} />
               ))}
