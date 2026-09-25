@@ -188,7 +188,7 @@ export const feesApi = {
   voidPayment: (id: string) => request(`/fee-payments/${id}`, { method: 'DELETE' }),
 
   schoolSummary: (params: Json) => request(`/fee-summary${qs(params)}`),
-  studentSummary: (studentId: string, yearId: string) => request(`/fee-summary/student/${studentId}${qs({ academic_year_id: yearId })}`),
+  studentSummary: (studentId: string, yearId: string) => request<FeeSummary>(`/fee-summary/student/${studentId}${qs({ academic_year_id: yearId })}`),
   installmentSheet: (params: Json) => request(`/fee-installment-sheet${qs(params)}`),
   downloadReceipt: (paymentId: string) => requestBlob(`/fee-receipts/${paymentId}`),
   sendReceiptWhatsApp: (paymentId: string, phone: string) => request(`/fee-receipts/${paymentId}/whatsapp`, { method: 'POST', body: { phone } }),
@@ -366,4 +366,33 @@ export type Marksheet = {
   total_max: number;
   percentage: number;
   result: string;
+};
+
+export type FeePayment = {
+  id: string;
+  fee_type: string;
+  installment_number?: number | null;
+  amount: number;
+  payment_date: string;
+  payment_mode: string;
+  reference_number?: string;
+  notes?: string;
+};
+
+export type FeeSummary = {
+  account_id: string;
+  student_id: string;
+  student_name: string;
+  student_code: string;
+  grade_level_name: string;
+  tuition_fee: number;
+  discount_amount: number;
+  net_tuition_fee: number;
+  van_fee: number;
+  previous_year_dues: number;
+  is_rte: boolean;
+  total_due: number;
+  total_paid: number;
+  balance_remaining: number;
+  payments: FeePayment[];
 };

@@ -14,13 +14,25 @@ import {
   studentsApi,
   homeworkApi,
   resultsApi,
+  feesApi,
   AcademicYear,
   Student,
   WardHomeworkItem,
   Exam,
   Marksheet,
+  FeeSummary,
 } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+
+function fmtAmount(n?: number) {
+  return `₹${(n || 0).toLocaleString('en-IN')}`;
+}
+
+function installmentLabel(p: { fee_type: string; installment_number?: number | null }) {
+  const type = (p.fee_type || 'tuition').replace(/_/g, ' ');
+  const label = type.charAt(0).toUpperCase() + type.slice(1);
+  return p.installment_number ? `${label} - Installment ${p.installment_number}` : label;
+}
 
 const STATUS_COLORS: Record<string, string> = {
   submitted: '#16a34a',
@@ -50,6 +62,9 @@ export default function MyWardScreen() {
   const [selectedExamId, setSelectedExamId] = useState('');
   const [marksheet, setMarksheet] = useState<Marksheet | null>(null);
   const [marksheetLoading, setMarksheetLoading] = useState(false);
+
+  const [feeSummary, setFeeSummary] = useState<FeeSummary | null>(null);
+  const [feeLoading, setFeeLoading] = useState(false);
 
   const ward = wards.find(w => w.id === selectedWardId) || null;
 
@@ -95,6 +110,14 @@ export default function MyWardScreen() {
         setMarksheet(null);
       })
       .catch(() => setExams([]));
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kicking off a load spinner for the fetch below
+    setFeeLoading(true);
+    feesApi
+      .studentSummary(selectedWardId, currentYear.id)
+      .then(setFeeSummary)
+      .catch(() => setFeeSummary(null))
+      .finally(() => setFeeLoading(false));
   }, [selectedWardId, currentYear]);
 
   useEffect(() => {
@@ -234,6 +257,51 @@ export default function MyWardScreen() {
           </>
         )}
       </View>
+
+      <Text style={styles.sectionTitle}>Fees</Text>
+      <View style={styles.card}>
+        {feeLoading ? (
+          <ActivityIndicator color="#4f46e5" />
+        ) : !feeSummary ? (
+          <Text style={styles.emptyInline}>No fee details available for this year yet</Text>
+        ) : (
+          <>
+            <View style={styles.feeTotals}>
+              <View style={styles.feeTotalItem}>
+                <Text style={styles.feeLabel}>Total Due</Text>
+                <Text style={styles.feeValue}>{fmtAmount(feeSummary.total_due)}</Text>
+              </View>
+              <View style={styles.feeTotalItem}>
+                <Text style={styles.feeLabel}>Total Paid</Text>
+                <Text style={styles.feeValue}>{fmtAmount(feeSummary.total_paid)}</Text>
+              </View>
+              <View style={styles.feeTotalItem}>
+                <Text style={styles.feeLabel}>Balance</Text>
+                <Text style={[styles.feeValue, feeSummary.balance_remaining > 0 ? styles.feeDue : styles.feeClear]}>
+                  {fmtAmount(feeSummary.balance_remaining)}
+                </Text>
+              </View>
+            </View>
+
+            {feeSummary.payments.length === 0 ? (
+              <Text style={styles.emptyInline}>No payments recorded yet</Text>
+            ) : (
+              feeSummary.payments.map(p => (
+                <View key={p.id} style={styles.homeworkRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.homeworkTitle}>{installmentLabel(p)}</Text>
+                    <Text style={styles.homeworkDue}>
+                      {fmtDate(p.payment_date)}
+                      {p.reference_number ? ` · Ref: ${p.reference_number}` : ''}
+                    </Text>
+                  </View>
+                  <Text style={styles.feeAmount}>{fmtAmount(p.amount)}</Text>
+                </View>
+              ))
+            )}
+          </>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -285,4 +353,18 @@ const styles = StyleSheet.create({
   marksValue: { fontSize: 13, color: '#334155', marginHorizontal: 8 },
   marksStatus: { fontSize: 13, fontWeight: '600' },
   marksTotal: { marginTop: 10, fontWeight: '700', color: '#0f172a' },
+  feeTotals: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingBottom: 12,
+    marginBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e2e8f0',
+  },
+  feeTotalItem: { alignItems: 'flex-start' },
+  feeLabel: { fontSize: 11, color: '#94a3b8', marginBottom: 2 },
+  feeValue: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
+  feeDue: { color: '#dc2626' },
+  feeClear: { color: '#16a34a' },
+  feeAmount: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
 });
