@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useSchool } from '../school/SchoolContext';
 import { staffApi } from '../api/client';
+import { ROLE_LABELS } from '../utils/roleLabels';
 
 type StaffMember = {
   id: string;
@@ -72,7 +73,7 @@ export default function StaffScreen() {
                   {item.first_name} {item.last_name}
                 </Text>
                 <Text style={styles.meta}>
-                  {item.profile?.designation || item.role} {item.phone ? `· ${item.phone}` : ''}
+                  {item.profile?.designation || ROLE_LABELS[item.role] || item.role} {item.phone ? `· ${item.phone}` : ''}
                 </Text>
               </View>
               {item.profile?.staff_type && (

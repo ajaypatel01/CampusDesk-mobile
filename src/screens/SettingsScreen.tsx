@@ -3,16 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useAuth } from '../auth/AuthContext';
 import { useSchool } from '../school/SchoolContext';
 import { usersApi } from '../api/client';
+import { ROLE_LABELS } from '../utils/roleLabels';
 
 type PendingUser = { id: string; first_name: string; last_name: string; email: string; role: string; created_at: string };
-
-const ROLE_LABELS: Record<string, string> = {
-  super_admin: 'Super Admin',
-  school_admin: 'School Admin',
-  teacher: 'Teacher',
-  registrar: 'Registrar',
-  parent: 'Parent',
-};
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();

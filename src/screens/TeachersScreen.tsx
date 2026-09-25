@@ -3,16 +3,9 @@ import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useSchool } from '../school/SchoolContext';
 import { usersApi } from '../api/client';
+import { ROLE_LABELS } from '../utils/roleLabels';
 
 type UserRow = { id: string; first_name: string; last_name: string; email: string; role: string; status: string };
-
-const ROLE_LABELS: Record<string, string> = {
-  super_admin: 'Super Admin',
-  school_admin: 'School Admin',
-  teacher: 'Teacher',
-  registrar: 'Registrar',
-  parent: 'Parent',
-};
 
 export default function TeachersScreen() {
   const { currentSchool, loading: schoolLoading } = useSchool();

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../auth/AuthContext';
 import { visibleNavItems } from '../../navigation/navItems';
+import { ROLE_LABELS } from '../../utils/roleLabels';
 
 function CustomDrawerContent(props: DrawerContentComponentProps) {
   const { user, logout } = useAuth();
@@ -13,7 +14,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
     <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
       <View style={styles.header}>
         <Text style={styles.logo}>CampusDesk</Text>
-        <Text style={styles.role}>{user?.role}</Text>
+        <Text style={styles.role}>{ROLE_LABELS[user?.role || ''] || user?.role}</Text>
       </View>
       {items.map(item => {
         const routeName = item.href === '/' ? 'index' : item.href.replace(/^\//, '');
