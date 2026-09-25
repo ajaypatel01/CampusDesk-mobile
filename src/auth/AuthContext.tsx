@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { authApi, getToken, setToken, clearToken, ApiError } from '../api/client';
+import { usersApi, getToken, setToken, clearToken, ApiError } from '../api/client';
 
 type JwtClaims = {
   sub: string;
@@ -44,12 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(email: string, password: string) {
-    const res = await authApi.login(email, password);
+    const res = await usersApi.login(email, password);
     const decoded = decode(res.token);
     if (!decoded) throw new ApiError('Received an invalid session token', 500);
-    if (decoded.role !== 'parent') {
-      throw new ApiError('This app is for parent accounts only. Use the CampusDesk website for staff logins.', 403);
-    }
     await setToken(res.token);
     setUser(decoded);
   }

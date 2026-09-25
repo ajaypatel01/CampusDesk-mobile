@@ -38,7 +38,7 @@ export default function LoginScreen() {
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.card}>
         <Text style={styles.logo}>CampusDesk</Text>
-        <Text style={styles.subtitle}>Parent sign in</Text>
+        <Text style={styles.subtitle}>Sign in</Text>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -69,8 +69,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <Text style={styles.hint}>
-          Don&apos;t have an account? Register on the CampusDesk website with your child&apos;s Scholar No, and
-          wait for your school to approve it.
+          Don&apos;t have an account? Register on the CampusDesk website and wait for your school to approve it.
         </Text>
       </View>
     </KeyboardAvoidingView>

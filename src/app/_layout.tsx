@@ -1,6 +1,8 @@
 import { ActivityIndicator, View } from 'react-native';
 import { Stack } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../auth/AuthContext';
+import { SchoolProvider } from '../school/SchoolContext';
 
 function RootNavigator() {
   const { user, loading } = useAuth();
@@ -16,7 +18,7 @@ function RootNavigator() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!!user}>
-        <Stack.Screen name="index" />
+        <Stack.Screen name="(app)" />
       </Stack.Protected>
       <Stack.Protected guard={!user}>
         <Stack.Screen name="login" />
@@ -27,8 +29,12 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <SchoolProvider>
+          <RootNavigator />
+        </SchoolProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
