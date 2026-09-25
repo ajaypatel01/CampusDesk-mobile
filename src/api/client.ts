@@ -353,6 +353,7 @@ export type MarksheetRow = {
   percentage: number;
   grade: string;
   status: string;
+  is_co_scholastic?: boolean;
 };
 
 export type Marksheet = {

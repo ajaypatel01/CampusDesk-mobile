@@ -240,7 +240,10 @@ export default function MyWardScreen() {
                 </Text>
                 {marksheet.rows.map((row, i) => (
                   <View key={i} style={styles.marksRow}>
-                    <Text style={styles.marksSubject}>{row.subject_name}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.marksSubject}>{row.subject_name}</Text>
+                      {row.is_co_scholastic && <Text style={styles.marksCoScholastic}>Co-scholastic — not in total</Text>}
+                    </View>
                     <Text style={styles.marksValue}>
                       {row.is_absent ? 'Absent' : `${row.marks_obtained}/${row.max_marks}`}
                     </Text>
@@ -349,7 +352,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e2e8f0',
   },
-  marksSubject: { flex: 1, fontSize: 13, color: '#0f172a' },
+  marksSubject: { fontSize: 13, color: '#0f172a' },
+  marksCoScholastic: { fontSize: 11, color: '#94a3b8', marginTop: 1 },
   marksValue: { fontSize: 13, color: '#334155', marginHorizontal: 8 },
   marksStatus: { fontSize: 13, fontWeight: '600' },
   marksTotal: { marginTop: 10, fontWeight: '700', color: '#0f172a' },
