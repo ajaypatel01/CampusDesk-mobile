@@ -1,8 +1,9 @@
+import { Redirect, usePathname } from 'expo-router';
 import { Drawer, DrawerContentScrollView, DrawerContentComponentProps } from 'expo-router/drawer';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../auth/AuthContext';
-import { visibleNavItems } from '../../navigation/navItems';
+import { visibleNavItems, canOpenPath } from '../../navigation/navItems';
 import { ROLE_LABELS } from '../../utils/roleLabels';
 
 function CustomDrawerContent(props: DrawerContentComponentProps) {
@@ -49,7 +50,13 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 
 export default function AppLayout() {
   const { user } = useAuth();
+  const pathname = usePathname();
   const items = visibleNavItems(user?.role);
+
+  // Hiding a screen from the menu doesn't stop it being opened another way
+  // (a deep link, a stale navigation state), so send the user home -- which
+  // redirects each role to its own start screen -- same as the web's guard.
+  if (user && !canOpenPath(pathname, user.role)) return <Redirect href="/" />;
 
   return (
     <Drawer drawerContent={props => <CustomDrawerContent {...props} />} screenOptions={{ headerTintColor: '#0f172a' }}>
