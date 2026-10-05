@@ -1,4 +1,4 @@
-# CampusDesk Parent
+# CampusDesk
 
 A React Native (Expo) mobile app for CampusDesk parents — sign in and check your child's
 class homework and exam results from a phone. This is the mobile counterpart to the
@@ -63,6 +63,29 @@ npx expo lint       # lint
 npx tsc --noEmit    # typecheck
 npx expo-doctor     # dependency/config sanity check
 ```
+
+## Building a shareable Android APK (no Expo account)
+
+Staff install the app from an `.apk` file shared directly (WhatsApp, Drive, USB).
+It's built and signed on a Mac with Java 17 and the Android SDK:
+
+```bash
+npx expo prebuild --platform android --clean --no-install   # regenerates android/ (gitignored)
+git checkout package.json      # prebuild rewrites the android/ios scripts; keep the Expo Go ones
+cd android && ./gradlew assembleRelease
+# sign with the CampusDesk release key (kept outside the repo)
+~/Library/Android/sdk/build-tools/36.0.0/apksigner sign \
+  --ks ~/.campusdesk-keys/campusdesk-release.jks --ks-key-alias campusdesk \
+  --ks-pass file:$HOME/.campusdesk-keys/keystore-password.txt \
+  --out ~/Desktop/CampusDesk-<version>.apk app/build/outputs/apk/release/app-release.apk
+```
+
+- **Every APK must be signed with the same release key**, or installed copies refuse
+  the update. Back up `~/.campusdesk-keys/` (keystore + password); losing it means
+  everyone has to uninstall and reinstall.
+- Bump `expo.version` and add/raise `expo.android.versionCode` in `app.json` for each
+  new APK, or phones won't install it over the old one.
+- There are no over-the-air updates in this setup: every change ships as a new APK.
 
 ## Shipping to the App Store / Play Store
 
