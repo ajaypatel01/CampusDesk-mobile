@@ -42,6 +42,12 @@ export default function ResultsScreen() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [formatExamId, setFormatExamId] = useState<string | null>(null);
+
+  const openExamFormat = useCallback((examId: string | null) => {
+    setFormatExamId(examId);
+    if (examId) setTab('exams');
+  }, []);
 
   useEffect(() => {
     if (!currentSchool || !currentYear) return;
@@ -158,6 +164,8 @@ export default function ResultsScreen() {
     students,
     reloadSubjects,
     reloadExams,
+    formatExamId,
+    openExamFormat,
   };
 
   return (
@@ -171,7 +179,10 @@ export default function ResultsScreen() {
               accessibilityRole="button"
               accessibilityState={{ selected: gradeId === g.id }}
               style={[styles.chip, gradeId === g.id && styles.chipActive]}
-              onPress={() => setGradeId(g.id)}
+              onPress={() => {
+                setGradeId(g.id);
+                setFormatExamId(null);
+              }}
             >
               <Text style={[styles.chipText, gradeId === g.id && styles.chipTextActive]}>{g.name}</Text>
             </TouchableOpacity>

@@ -226,6 +226,12 @@ export const resultsApi = {
   listExams: (params: Json) => request<{ items: Exam[] }>(`/exams${qs(params)}`),
   createExam: (body: Json) => request('/exams', { method: 'POST', body }),
   publishExam: (id: string, publish: boolean) => request(`/exams/${id}/publish`, { method: 'POST', body: { publish } }),
+  // Per-exam marks distribution for each subject (admins change it; teachers read it).
+  listExamFormats: (examId: string) => request<{ items: ExamSubjectFormat[] }>(`/exams/${examId}/mark-formats`),
+  setExamSubjectFormat: (examId: string, subjectId: string, components: MarkComponent[]) =>
+    request<{ items: ExamSubjectFormat[] }>(`/exams/${examId}/mark-formats/${subjectId}`, { method: 'PUT', body: { components } }),
+  resetExamSubjectFormat: (examId: string, subjectId: string) =>
+    request<{ items: ExamSubjectFormat[] }>(`/exams/${examId}/mark-formats/${subjectId}`, { method: 'DELETE' }),
 
   upsertMark: (body: Json) => request('/exam-marks', { method: 'POST', body }),
   bulkUpsertMarks: (marks: Json[]) => request('/exam-marks/bulk', { method: 'POST', body: { marks } }),
@@ -381,6 +387,15 @@ export type Exam = { id: string; name: string; exam_date?: string | null; weight
 export type ClassSection = { id: string; grade_level_id: string; name: string; homeroom_teacher_id?: string | null };
 
 export type MarkComponent = { key: string; label: string; max_marks: number };
+
+/** One subject's fields in one exam; custom = the exam has its own format for it. */
+export type ExamSubjectFormat = {
+  subject_id: string;
+  subject_name: string;
+  max_marks: number;
+  components: MarkComponent[];
+  custom: boolean;
+};
 
 export type Subject = {
   id: string;

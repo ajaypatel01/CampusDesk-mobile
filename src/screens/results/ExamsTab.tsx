@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text } from 'react-native';
 import { resultsApi, Exam } from '../../api/client';
 import { ResultsContext } from './types';
+import ExamFormatEditor from './ExamFormatEditor';
 import { Badge, Button, Card, Empty, Field, SectionHeader, colors, confirm, showError, styles as ui } from './ui';
 
 const EMPTY_FORM = { name: '', exam_date: '', weight_percent: '100' };
@@ -95,14 +96,29 @@ export default function ExamsTab({ ctx }: { ctx: ResultsContext }) {
                   <Badge label={ex.is_published ? 'Published' : 'Draft'} tone={ex.is_published ? 'success' : 'muted'} />
                 </View>
               </View>
-              <Button
-                small
-                variant="outline"
-                label={ex.is_published ? 'Unpublish' : 'Publish'}
-                loading={publishingId === ex.id}
-                onPress={() => togglePublish(ex)}
-              />
+              <View style={{ gap: 6 }}>
+                <Button
+                  small
+                  variant="outline"
+                  label={ex.is_published ? 'Unpublish' : 'Publish'}
+                  loading={publishingId === ex.id}
+                  onPress={() => togglePublish(ex)}
+                />
+                <Button
+                  small
+                  variant={ctx.formatExamId === ex.id ? 'primary' : 'outline'}
+                  label="Marks format"
+                  onPress={() => ctx.openExamFormat(ctx.formatExamId === ex.id ? null : ex.id)}
+                />
+              </View>
             </View>
+            {ctx.formatExamId === ex.id && (
+              <View style={{ marginTop: 12 }}>
+                <View style={ui.divider} />
+                <Text style={[ui.sectionTitle, { marginBottom: 8 }]}>Marks format</Text>
+                <ExamFormatEditor exam={ex} />
+              </View>
+            )}
           </Card>
         ))
       )}
