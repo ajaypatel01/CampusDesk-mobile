@@ -13,6 +13,10 @@ export type ResultsContext = {
   students: Student[];
   reloadSubjects: () => void;
   reloadExams: () => void;
+  /** Exam whose marks format editor is open on the Exams tab, if any. */
+  formatExamId: string | null;
+  /** Switch to the Exams tab with this exam's marks format open (null closes it). */
+  openExamFormat: (examId: string | null) => void;
 };
 
 export function studentLabel(s: Student) {

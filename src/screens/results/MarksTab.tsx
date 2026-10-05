@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Switch, StyleSheet } from 'react-native';
-import { resultsApi, Subject } from '../../api/client';
+import { resultsApi, MarkComponent, Subject } from '../../api/client';
 import { ResultsContext, studentLabel } from './types';
-import MarkFieldsEditor from './MarkFieldsEditor';
 import { Button, Card, Empty, Message, SectionHeader, Select, colors, styles as ui } from './ui';
 
 type Entry = { marks_obtained?: string; is_absent?: boolean; components?: Record<string, string> };
@@ -14,11 +13,30 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
   const [marks, setMarks] = useState<Record<string, Entry>>({});
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  // The selected exam's fields per subject (its own format, or the subject's fields).
+  const [examFormats, setExamFormats] = useState<Record<string, MarkComponent[]>>({});
+
+  useEffect(() => {
+    if (!examId) return;
+    let cancelled = false;
+    resultsApi
+      .listExamFormats(examId)
+      .then(r => !cancelled && setExamFormats(Object.fromEntries((r.items || []).map(f => [f.subject_id, f.components]))))
+      .catch(() => !cancelled && setExamFormats({}));
+    return () => {
+      cancelled = true;
+    };
+  }, [examId]);
+
+  function fieldsFor(sub: Subject): MarkComponent[] {
+    return examFormats[sub.id] || sub.mark_components || [];
+  }
 
   // Start blank whenever the exam or student changes, so one student's
   // numbers can never be saved against the next.
   function pickExam(id: string) {
     setExamId(id);
+    setExamFormats({});
     setMarks({});
     setMsg('');
   }
@@ -34,7 +52,7 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
 
   function componentTotal(sub: Subject) {
     const vals = marks[sub.id]?.components || {};
-    return (sub.mark_components || []).reduce((sum, c) => sum + (parseFloat(vals[c.key]) || 0), 0);
+    return fieldsFor(sub).reduce((sum, c) => sum + (parseFloat(vals[c.key]) || 0), 0);
   }
 
   async function save() {
@@ -52,7 +70,7 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
           is_absent: entry.is_absent || false,
           remarks: '',
         };
-        const comps = sub.mark_components || [];
+        const comps = fieldsFor(sub);
         if (comps.length > 0) {
           const components: Record<string, number> = {};
           comps.forEach(c => {
@@ -101,7 +119,8 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
       {examId && studentId && ctx.subjects.length > 0 && (
         <>
           {ctx.subjects.map(sub => {
-            const comps = sub.mark_components || [];
+            const comps = fieldsFor(sub);
+            const fieldsMax = comps.reduce((sum, c) => sum + c.max_marks, 0);
             const absent = marks[sub.id]?.is_absent || false;
             return (
               <Card key={sub.id}>
@@ -143,11 +162,15 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
                 )}
 
                 <Text style={s.total}>
-                  {comps.length > 0 ? `Total: ${componentTotal(sub)} / ${sub.max_marks}` : `Out of ${sub.max_marks}`}
+                  {comps.length > 0 ? `Total: ${componentTotal(sub)} / ${fieldsMax}` : `Out of ${sub.max_marks}`}
                 </Text>
 
-                {/* Teachers only enter marks -- adding mark fields is subject setup. */}
-                {!ctx.isTeacher && <MarkFieldsEditor subject={sub} onChanged={ctx.reloadSubjects} showChips={false} />}
+                {/* Teachers only enter marks; admins change fields per exam under Exams > Marks format. */}
+                {!ctx.isTeacher && (
+                  <View style={{ marginTop: 10, alignSelf: 'flex-start' }}>
+                    <Button small variant="outline" label="Change fields for this exam" onPress={() => ctx.openExamFormat(examId)} />
+                  </View>
+                )}
               </Card>
             );
           })}
