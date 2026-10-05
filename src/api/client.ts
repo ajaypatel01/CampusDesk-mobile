@@ -209,10 +209,16 @@ export const documentsApi = {
 };
 
 export const resultsApi = {
-  listSubjects: (params: Json) => request(`/subjects${qs(params)}`),
+  listSubjects: (params: Json) => request<{ items: Subject[] }>(`/subjects${qs(params)}`),
   createSubject: (body: Json) => request('/subjects', { method: 'POST', body }),
   updateSubject: (id: string, body: Json) => request(`/subjects/${id}`, { method: 'PUT', body }),
   deleteSubject: (id: string) => request(`/subjects/${id}`, { method: 'DELETE' }),
+
+  // Per-subject graded fields (Oral/Written/...). Adding/removing them is
+  // admin subject setup -- the backend blocks teachers and parents.
+  listSubjectComponents: (subjectId: string) => request(`/subjects/${subjectId}/mark-components`),
+  addSubjectComponent: (subjectId: string, body: Json) => request(`/subjects/${subjectId}/mark-components`, { method: 'POST', body }),
+  deleteSubjectComponent: (subjectId: string, key: string) => request(`/subjects/${subjectId}/mark-components/${key}`, { method: 'DELETE' }),
 
   listExams: (params: Json) => request<{ items: Exam[] }>(`/exams${qs(params)}`),
   createExam: (body: Json) => request('/exams', { method: 'POST', body }),
@@ -223,7 +229,31 @@ export const resultsApi = {
 
   getMarksheet: (examId: string, studentId: string) => request<Marksheet>(`/marksheets${qs({ exam_id: examId, student_id: studentId })}`),
   downloadMarksheet: (examId: string, studentId: string) => requestBlob(`/marksheets/pdf?exam_id=${examId}&student_id=${studentId}`),
+  // super_admin only: manually correct a marksheet's total.
+  setTotalOverride: (examId: string, studentId: string, totalObtained: number) =>
+    request<Marksheet>('/marksheets/total-override', { method: 'PUT', body: { exam_id: examId, student_id: studentId, total_obtained: totalObtained } }),
+  clearTotalOverride: (examId: string, studentId: string) =>
+    request<Marksheet>(`/marksheets/total-override${qs({ exam_id: examId, student_id: studentId })}`, { method: 'DELETE' }),
   wardExams: (studentId: string, academicYearId: string) => request<{ items: Exam[] }>(`/ward-exams${qs({ student_id: studentId, academic_year_id: academicYearId })}`),
+
+  // Combined, multi-exam, class-wise-templated report card (kg/primary/middle).
+  getReportCard: (studentId: string, academicYearId: string) =>
+    request<ReportCard>(`/report-cards${qs({ student_id: studentId, academic_year_id: academicYearId })}`),
+  // design is a visual skin only ('classic' | 'modern' | 'minimal').
+  downloadReportCard: (studentId: string, academicYearId: string, design: string) =>
+    requestBlob(`/report-cards/pdf${qs({ student_id: studentId, academic_year_id: academicYearId, design })}`),
+  upsertReportCardDetails: (body: Json) => request('/report-cards/details', { method: 'PUT', body }),
+  upsertDisciplineGrades: (body: Json) => request('/report-cards/discipline-grades', { method: 'PUT', body }),
+  listDisciplineCriteria: () => request<{ items: string[] }>('/discipline-criteria'),
+};
+
+// Super-admin-only custom fields. Every call 403s for anyone else.
+export const customFieldsApi = {
+  createDefinition: (body: Json) => request('/custom-fields/definitions', { method: 'POST', body }),
+  deleteDefinition: (id: string) => request(`/custom-fields/definitions/${id}`, { method: 'DELETE' }),
+  listValues: (schoolId: string, entityType: string, entityId: string, scopeId?: string) =>
+    request<{ items: CustomFieldValue[] }>(`/custom-fields/values${qs({ school_id: schoolId, entity_type: entityType, entity_id: entityId, scope_id: scopeId })}`),
+  upsertValue: (body: Json) => request('/custom-fields/values', { method: 'PUT', body }),
 };
 
 export const homeworkApi = {
@@ -343,7 +373,61 @@ export type WardHomeworkItem = {
   submission_status?: string;
 };
 
-export type Exam = { id: string; name: string };
+export type Exam = { id: string; name: string; exam_date?: string | null; weight_percent?: number; is_published?: boolean };
+
+export type ClassSection = { id: string; grade_level_id: string; name: string; homeroom_teacher_id?: string | null };
+
+export type MarkComponent = { key: string; label: string; max_marks: number };
+
+export type Subject = {
+  id: string;
+  name: string;
+  code?: string;
+  max_marks: number;
+  passing_marks: number;
+  sort_order?: number;
+  is_co_scholastic?: boolean;
+  mark_components?: MarkComponent[] | null;
+};
+
+export type ReportCardCell = { obtained: number; max_marks: number; is_absent?: boolean };
+
+export type ReportCard = {
+  school_name: string;
+  academic_year: string;
+  grade_level_id: string;
+  grade_level_name: string;
+  template: string;
+  student_name: string;
+  student_code: string;
+  exams: { exam_id: string; exam_name: string; position: number }[] | null;
+  subjects:
+    | {
+        subject_id: string;
+        subject_name: string;
+        is_co_scholastic?: boolean;
+        by_exam: ReportCardCell[] | null;
+        overall_obtained: number;
+        overall_max: number;
+        overall_percent: number;
+        grade?: string;
+      }[]
+    | null;
+  overall_obtained: number;
+  overall_max: number;
+  overall_percent: number;
+  overall_grade?: string;
+  details?: { roll_no?: string; attendance?: string; remark?: string; promoted_to?: string; moral_remark?: string; gk_remark?: string } | null;
+  discipline_grades?: { criterion_key: string; grade: string }[] | null;
+};
+
+export type CustomFieldValue = {
+  id: string;
+  label: string;
+  field_type: 'string' | 'int' | 'float' | 'boolean' | 'enum';
+  enum_options?: string[] | null;
+  value?: string | null;
+};
 
 export type MarksheetRow = {
   subject_name: string;
@@ -351,6 +435,7 @@ export type MarksheetRow = {
   marks_obtained: number;
   is_absent: boolean;
   percentage: number;
+  passing_marks?: number;
   grade: string;
   status: string;
   is_co_scholastic?: boolean;
@@ -367,6 +452,11 @@ export type Marksheet = {
   total_max: number;
   percentage: number;
   result: string;
+  school_name?: string;
+  cgpa?: number;
+  overall_grade?: string;
+  is_total_overridden?: boolean;
+  computed_total_obtained?: number;
 };
 
 export type FeePayment = {
