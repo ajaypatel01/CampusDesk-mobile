@@ -214,10 +214,13 @@ export const resultsApi = {
   updateSubject: (id: string, body: Json) => request(`/subjects/${id}`, { method: 'PUT', body }),
   deleteSubject: (id: string) => request(`/subjects/${id}`, { method: 'DELETE' }),
 
-  // Per-subject graded fields (Oral/Written/...). Adding/removing them is
+  // Per-subject graded fields (Oral/Written/...). Adding/editing/removing them is
   // admin subject setup -- the backend blocks teachers and parents.
   listSubjectComponents: (subjectId: string) => request(`/subjects/${subjectId}/mark-components`),
   addSubjectComponent: (subjectId: string, body: Json) => request(`/subjects/${subjectId}/mark-components`, { method: 'POST', body }),
+  // Rename a field and/or change its max marks (refused once marks are recorded under it).
+  updateSubjectComponent: (subjectId: string, key: string, body: Json) =>
+    request(`/subjects/${subjectId}/mark-components/${key}`, { method: 'PUT', body }),
   deleteSubjectComponent: (subjectId: string, key: string) => request(`/subjects/${subjectId}/mark-components/${key}`, { method: 'DELETE' }),
 
   listExams: (params: Json) => request<{ items: Exam[] }>(`/exams${qs(params)}`),
