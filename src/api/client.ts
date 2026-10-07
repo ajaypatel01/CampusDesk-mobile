@@ -408,7 +408,7 @@ export type Subject = {
   mark_components?: MarkComponent[] | null;
 };
 
-export type ReportCardCell = { obtained: number; max_marks: number; is_absent?: boolean };
+export type ReportCardCell = { obtained: number; max_marks: number; is_absent?: boolean; grade_letter?: string };
 
 export type ReportCard = {
   school_name: string;
@@ -424,6 +424,7 @@ export type ReportCard = {
         subject_id: string;
         subject_name: string;
         is_co_scholastic?: boolean;
+        is_graded?: boolean;
         by_exam: ReportCardCell[] | null;
         overall_obtained: number;
         overall_max: number;
@@ -457,6 +458,8 @@ export type MarksheetRow = {
   grade: string;
   status: string;
   is_co_scholastic?: boolean;
+  /** A/B/C/D for a grading-only subject graded instead of marked. */
+  grade_letter?: string;
 };
 
 export type Marksheet = {

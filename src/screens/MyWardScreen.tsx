@@ -245,7 +245,7 @@ export default function MyWardScreen() {
                       {row.is_co_scholastic && <Text style={styles.marksCoScholastic}>Co-scholastic — not in total</Text>}
                     </View>
                     <Text style={styles.marksValue}>
-                      {row.is_absent ? 'Absent' : `${row.marks_obtained}/${row.max_marks}`}
+                      {row.is_absent ? 'Absent' : row.grade_letter ? `Grade ${row.grade_letter}` : `${row.marks_obtained}/${row.max_marks}`}
                     </Text>
                     <Text style={[styles.marksStatus, { color: row.status === 'Pass' ? '#16a34a' : row.status === 'Fail' ? '#dc2626' : '#64748b' }]}>
                       {row.status}

@@ -126,14 +126,14 @@ export default function MarksheetTab({ ctx }: { ctx: ResultsContext }) {
               <View style={{ flex: 1 }}>
                 <Text style={s.subject}>{row.subject_name}</Text>
                 <Text style={ui.muted}>
-                  Max {row.max_marks}
-                  {row.passing_marks !== undefined ? ` · Pass ${row.passing_marks}` : ''}
-                  {row.is_absent ? '' : ` · ${row.percentage?.toFixed(1)}%`}
+                  {row.grade_letter
+                    ? 'Graded A–D'
+                    : `Max ${row.max_marks}${row.passing_marks !== undefined ? ` · Pass ${row.passing_marks}` : ''}${row.is_absent ? '' : ` · ${row.percentage?.toFixed(1)}%`}`}
                 </Text>
                 {row.is_co_scholastic && <Text style={ui.muted}>Co-scholastic — not in total</Text>}
               </View>
               <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                <Text style={s.obtained}>{row.is_absent ? 'Absent' : row.marks_obtained}</Text>
+                <Text style={s.obtained}>{row.is_absent ? 'Absent' : row.grade_letter || row.marks_obtained}</Text>
                 <View style={{ flexDirection: 'row', gap: 4 }}>
                   {row.grade ? <Badge label={row.grade} /> : null}
                   <Badge label={row.status} tone={row.status === 'Pass' ? 'success' : row.status === 'Fail' ? 'danger' : 'muted'} />

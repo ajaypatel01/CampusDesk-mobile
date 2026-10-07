@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, Switch, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Switch, StyleSheet, TouchableOpacity } from 'react-native';
 import { resultsApi, MarkComponent, Subject } from '../../api/client';
 import { ResultsContext, studentLabel } from './types';
 import { Button, Card, Empty, Message, SectionHeader, Select, colors, styles as ui } from './ui';
 
-type Entry = { marks_obtained?: string; is_absent?: boolean; components?: Record<string, string> };
+type Entry = { marks_obtained?: string; is_absent?: boolean; components?: Record<string, string>; grade_letter?: string };
+
+// Grading-only (co-scholastic) subjects get one of these instead of marks.
+const GRADE_LETTERS = ['A', 'B', 'C', 'D'];
 
 /** Enter one student's marks for one exam, every subject at once. Teachers and admins. */
 export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
@@ -60,7 +63,14 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
     setSaving(true);
     setMsg('');
     try {
-      const payload = ctx.subjects.map(sub => {
+      // A grading-only subject with no grade picked is left out, so it is
+      // never saved as 0 marks.
+      const payload = ctx.subjects
+        .filter(sub => {
+          const entry = marks[sub.id] || {};
+          return !sub.is_co_scholastic || entry.is_absent || entry.grade_letter;
+        })
+        .map(sub => {
         const entry = marks[sub.id] || {};
         const base = {
           exam_id: examId,
@@ -70,6 +80,9 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
           is_absent: entry.is_absent || false,
           remarks: '',
         };
+        if (sub.is_co_scholastic) {
+          return { ...base, grade_letter: entry.is_absent ? '' : entry.grade_letter };
+        }
         const comps = fieldsFor(sub);
         if (comps.length > 0) {
           const components: Record<string, number> = {};
@@ -132,7 +145,31 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
                   </View>
                 </View>
 
-                {comps.length > 0 ? (
+                {sub.is_co_scholastic ? (
+                  <View>
+                    <Text style={ui.fieldLabel}>
+                      Grade <Text style={ui.muted}>(grading only)</Text>
+                    </Text>
+                    <View style={s.letters}>
+                      {GRADE_LETTERS.map(g => {
+                        const on = marks[sub.id]?.grade_letter === g;
+                        return (
+                          <TouchableOpacity
+                            key={g}
+                            disabled={absent}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: on, disabled: absent }}
+                            accessibilityLabel={`Grade ${g}`}
+                            onPress={() => update(sub.id, { grade_letter: on ? '' : g })}
+                            style={[s.letter, on && s.letterOn, absent && { opacity: 0.4 }]}
+                          >
+                            <Text style={[s.letterText, on && s.letterTextOn]}>{g}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : comps.length > 0 ? (
                   <View style={s.grid}>
                     {comps.map(c => (
                       <View key={c.key} style={s.gridCell}>
@@ -162,7 +199,11 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
                 )}
 
                 <Text style={s.total}>
-                  {comps.length > 0 ? `Total: ${componentTotal(sub)} / ${fieldsMax}` : `Out of ${sub.max_marks}`}
+                  {sub.is_co_scholastic
+                    ? 'Graded A–D, not counted in the total'
+                    : comps.length > 0
+                      ? `Total: ${componentTotal(sub)} / ${fieldsMax}`
+                      : `Out of ${sub.max_marks}`}
                 </Text>
 
                 {/* Teachers only enter marks; admins change fields per exam under Exams > Marks format. */}
@@ -204,5 +245,19 @@ const s = StyleSheet.create({
   absent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   gridCell: { width: '47%' },
+  letters: { flexDirection: 'row', gap: 10 },
+  letter: {
+    width: 52,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  letterOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  letterText: { fontSize: 17, fontWeight: '700', color: colors.text },
+  letterTextOn: { color: '#fff' },
   total: { marginTop: 10, fontSize: 13, fontWeight: '600', color: colors.textMuted },
 });
