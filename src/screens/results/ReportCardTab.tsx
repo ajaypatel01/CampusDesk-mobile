@@ -169,13 +169,13 @@ export default function ReportCardTab({ ctx }: { ctx: ResultsContext }) {
                       <Text style={s.examName}>
                         {exams[i]?.exam_name} ({ROMAN[(exams[i]?.position ?? 0) - 1] || exams[i]?.position})
                       </Text>
-                      <Text style={s.examValue}>{cell.is_absent ? 'Absent' : `${cell.obtained} / ${cell.max_marks}`}</Text>
+                      <Text style={s.examValue}>{cell.is_absent ? 'Absent' : cell.grade_letter || `${cell.obtained} / ${cell.max_marks}`}</Text>
                     </View>
                   ))}
                   <View style={[s.examLine, { borderBottomWidth: 0 }]}>
                     <Text style={[s.examName, { fontWeight: '700', color: colors.text }]}>Overall</Text>
                     <Text style={[s.examValue, { fontWeight: '700' }]}>
-                      {sub.overall_obtained} / {sub.overall_max} · {sub.overall_percent?.toFixed(1)}%
+                      {sub.is_graded ? `Grade ${sub.grade}` : `${sub.overall_obtained} / ${sub.overall_max} · ${sub.overall_percent?.toFixed(1)}%`}
                     </Text>
                   </View>
                 </Card>
