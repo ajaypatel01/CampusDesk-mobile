@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { usersApi, getToken, setToken, clearToken, ApiError } from '../api/client';
+import { roleAllowed, wrongAppMessage } from '../config/appVariant';
 
 type JwtClaims = {
   sub: string;
@@ -37,8 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getToken().then(token => {
-      if (token) setUser(decode(token));
+    getToken().then(async token => {
+      const saved = token ? decode(token) : null;
+      // A session saved by a build for a different audience is dropped.
+      if (saved && !roleAllowed(saved.role)) await clearToken();
+      else if (saved) setUser(saved);
       setLoading(false);
     });
   }, []);
@@ -47,6 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await usersApi.login(email, password);
     const decoded = decode(res.token);
     if (!decoded) throw new ApiError('Received an invalid session token', 500);
+    // Each app is for one audience; don't keep a session from the wrong one.
+    if (!roleAllowed(decoded.role)) throw new ApiError(wrongAppMessage(decoded.role), 403);
     await setToken(res.token);
     setUser(decoded);
   }

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
+import { APP_VARIANT, APP_AUDIENCE } from '../config/appVariant';
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -38,7 +39,9 @@ export default function LoginScreen() {
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.card}>
         <Text style={styles.logo}>CampusDesk</Text>
-        <Text style={styles.subtitle}>Sign in</Text>
+        <Text style={styles.subtitle}>
+          {APP_VARIANT === 'dev' ? 'Sign in' : `${APP_AUDIENCE[APP_VARIANT]} · Sign in`}
+        </Text>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
