@@ -57,7 +57,10 @@ export default function ResultsScreen() {
           academicApi.listGrades(currentSchool.id),
           academicApi.listSections({ school_id: currentSchool.id, academic_year_id: currentYear.id }),
         ]).then(([gradeRes, sectionRes]: [{ items: GradeLevel[] }, { items?: ClassSection[] }]) => {
-          const own = (sectionRes.items || []).filter(s => s.homeroom_teacher_id === user?.id);
+          // Class teacher or a vice class teacher of the section -- same access.
+          const own = (sectionRes.items || []).filter(
+            s => s.homeroom_teacher_id === user?.id || (s.vice_teacher_ids || []).includes(user?.id ?? '')
+          );
           const ownGradeIds = new Set(own.map(s => s.grade_level_id));
           return { grades: (gradeRes.items || []).filter(g => ownGradeIds.has(g.id)), sections: own };
         })

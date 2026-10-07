@@ -384,7 +384,14 @@ export type WardHomeworkItem = {
 
 export type Exam = { id: string; name: string; exam_date?: string | null; weight_percent?: number; is_published?: boolean };
 
-export type ClassSection = { id: string; grade_level_id: string; name: string; homeroom_teacher_id?: string | null };
+export type ClassSection = {
+  id: string;
+  grade_level_id: string;
+  name: string;
+  homeroom_teacher_id?: string | null;
+  /** Vice class teachers: same access to the section as the class teacher. */
+  vice_teacher_ids?: string[];
+};
 
 export type MarkComponent = { key: string; label: string; max_marks: number };
 
