@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "CampusDesk",
+    "name": "CampusDesk (dev)",
     "slug": "campusdesk-mobile",
     "scheme": "campusdesk",
-    "version": "1.0.1",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -18,8 +18,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.campusdesk.mobile",
-      "versionCode": 2
+      "package": "com.campusdesk.dev",
+      "versionCode": 4
     },
     "web": {
       "favicon": "./assets/favicon.png"

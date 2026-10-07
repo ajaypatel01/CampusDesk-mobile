@@ -64,13 +64,28 @@ npx tsc --noEmit    # typecheck
 npx expo-doctor     # dependency/config sanity check
 ```
 
+## Three apps from one codebase
+
+`APP_VARIANT` (read by `app.config.js`) picks which app a build is:
+
+| `APP_VARIANT` | App name | Package | Who can sign in |
+|---|---|---|---|
+| `parent` | CampusDesk | `com.campusdesk.parent` | parents |
+| `staff` | CampusDesk Staff | `com.campusdesk.staff` | teachers, registrars, school admins |
+| `admin` | CampusDesk Admin | `com.campusdesk.admin` | owner (super admin) |
+| unset | CampusDesk (dev) | `com.campusdesk.dev` | everyone (development / Expo Go) |
+
+Signing into the wrong app is refused with a message naming the right one
+(`src/config/appVariant.ts`). Build each app with `APP_VARIANT=<variant>` set
+for the prebuild step below.
+
 ## Building a shareable Android APK (no Expo account)
 
 Staff install the app from an `.apk` file shared directly (WhatsApp, Drive, USB).
 It's built and signed on a Mac with Java 17 and the Android SDK:
 
 ```bash
-npx expo prebuild --platform android --clean --no-install   # regenerates android/ (gitignored)
+APP_VARIANT=staff npx expo prebuild --platform android --clean --no-install   # regenerates android/ (gitignored)
 git checkout package.json      # prebuild rewrites the android/ios scripts; keep the Expo Go ones
 cd android && ./gradlew assembleRelease
 # sign with the CampusDesk release key (kept outside the repo)
