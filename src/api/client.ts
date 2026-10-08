@@ -382,7 +382,16 @@ export type WardHomeworkItem = {
   submission_status?: string;
 };
 
-export type Exam = { id: string; name: string; exam_date?: string | null; weight_percent?: number; is_published?: boolean };
+export type Exam = {
+  id: string;
+  name: string;
+  exam_date?: string | null;
+  weight_percent?: number;
+  is_published?: boolean;
+  /** Parent view only: the school hides this exam's results while fees are due. */
+  fee_locked?: boolean;
+  fee_due?: number;
+};
 
 export type ClassSection = {
   id: string;
