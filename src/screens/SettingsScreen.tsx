@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
 import { useSchool } from '../school/SchoolContext';
 import { usersApi } from '../api/client';
@@ -74,6 +74,9 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Parents log in with the number the school has for them. */}
+      {user?.role !== 'parent' && <WhatsAppLoginCard />}
+
       {isAdmin && (
         <>
           <Text style={styles.sectionTitle}>Pending Registrations</Text>
@@ -115,6 +118,108 @@ export default function SettingsScreen() {
   );
 }
 
+/** Verify a WhatsApp number so this account can log in with an OTP. */
+function WhatsAppLoginCard() {
+  const [verified, setVerified] = useState<string | null>(null);
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    usersApi.me().then(me => setVerified(me.phone_number || null)).catch(() => {});
+  }, []);
+
+  async function send() {
+    setError('');
+    setBusy(true);
+    try {
+      await usersApi.requestPhoneVerification(phone);
+      setSent(true);
+      setOtp('');
+    } catch (err: any) {
+      setError(err.message || 'Could not send the code');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirm() {
+    setError('');
+    setBusy(true);
+    try {
+      const me = await usersApi.confirmPhoneVerification(phone, otp.trim());
+      setVerified(me.phone_number || phone);
+      setSent(false);
+      setPhone('');
+    } catch (err: any) {
+      setError(err.message || 'Invalid or expired code');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <Text style={styles.sectionTitle}>WhatsApp login</Text>
+      <View style={styles.card}>
+        {verified && !sent ? (
+          <>
+            <Text style={styles.waText}>
+              Verified: <Text style={styles.waStrong}>{verified}</Text>. You can sign in with a WhatsApp code sent to this
+              number.
+            </Text>
+            <TouchableOpacity onPress={() => setVerified(null)}>
+              <Text style={styles.waLink}>Change number</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <Text style={styles.waText}>Verify your WhatsApp number to sign in with a code instead of your password.</Text>
+            {error ? <Text style={styles.waError}>{error}</Text> : null}
+            <TextInput
+              style={styles.waInput}
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              placeholder="98765 43210"
+              maxLength={16}
+              editable={!busy && !sent}
+            />
+            {sent && (
+              <TextInput
+                style={styles.waInput}
+                value={otp}
+                onChangeText={t => setOtp(t.replace(/\D/g, ''))}
+                keyboardType="number-pad"
+                autoComplete="sms-otp"
+                textContentType="oneTimeCode"
+                placeholder="6-digit code from WhatsApp"
+                maxLength={6}
+                autoFocus
+                editable={!busy}
+              />
+            )}
+            <TouchableOpacity style={styles.waBtn} onPress={sent ? confirm : send} disabled={busy}>
+              {busy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.waBtnText}>{sent ? 'Verify' : 'Send code on WhatsApp'}</Text>
+              )}
+            </TouchableOpacity>
+            {sent && (
+              <TouchableOpacity onPress={() => setSent(false)} disabled={busy}>
+                <Text style={styles.waLink}>Change number</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+      </View>
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#f8fafc' },
   content: { padding: 16, paddingBottom: 40 },
@@ -137,4 +242,19 @@ const styles = StyleSheet.create({
   approveBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   rejectBtn: { backgroundColor: '#fef2f2', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6 },
   rejectBtnText: { color: '#dc2626', fontSize: 12, fontWeight: '600' },
+  waText: { fontSize: 13, color: '#475569', lineHeight: 19 },
+  waStrong: { fontWeight: '700', color: '#0f172a' },
+  waError: { color: '#dc2626', backgroundColor: '#fef2f2', padding: 8, borderRadius: 6, marginTop: 10, fontSize: 12 },
+  waInput: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    marginTop: 10,
+  },
+  waBtn: { backgroundColor: '#4f46e5', borderRadius: 8, paddingVertical: 11, alignItems: 'center', marginTop: 12 },
+  waBtnText: { color: '#fff', fontWeight: '600' },
+  waLink: { color: '#4f46e5', fontSize: 13, fontWeight: '600', marginTop: 12, textAlign: 'center' },
 });

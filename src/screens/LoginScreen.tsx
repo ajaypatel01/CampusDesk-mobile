@@ -10,29 +10,70 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
-import { APP_VARIANT, APP_AUDIENCE } from '../config/appVariant';
+import { usersApi } from '../api/client';
+import { APP_VARIANT, APP_AUDIENCE, OTP_AUDIENCE } from '../config/appVariant';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, loginWithOtp } = useAuth();
+  // Parents mostly have no email login, so their app opens on WhatsApp OTP.
+  const [mode, setMode] = useState<'password' | 'otp'>(APP_VARIANT === 'parent' ? 'otp' : 'password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit() {
+  async function run(action: () => Promise<void>, fallback: string) {
     setError('');
+    setNotice('');
+    setLoading(true);
+    try {
+      await action();
+    } catch (err: any) {
+      setError(err.message || fallback);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handlePassword() {
     if (!email.trim() || !password) {
       setError('Enter your email and password');
       return;
     }
-    setLoading(true);
-    try {
-      await login(email.trim().toLowerCase(), password);
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
+    run(() => login(email.trim().toLowerCase(), password), 'Login failed');
+  }
+
+  function sendOtp() {
+    if (phone.replace(/\D/g, '').length < 10) {
+      setError('Enter your 10-digit mobile number');
+      return;
     }
+    run(async () => {
+      await usersApi.sendLoginOtp(phone, OTP_AUDIENCE[APP_VARIANT]);
+      setOtpSent(true);
+      setOtp('');
+      setNotice('We sent a 6-digit code to this number on WhatsApp.');
+    }, 'Could not send the code');
+  }
+
+  function verifyOtp() {
+    if (otp.trim().length !== 6) {
+      setError('Enter the 6-digit code');
+      return;
+    }
+    run(() => loginWithOtp(phone, otp.trim()), 'Invalid or expired code');
+  }
+
+  function switchMode(next: 'password' | 'otp') {
+    setMode(next);
+    setError('');
+    setNotice('');
+    setOtpSent(false);
+    setOtp('');
   }
 
   return (
@@ -44,35 +85,98 @@ export default function LoginScreen() {
         </Text>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
+        {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="email-address"
-          placeholder="you@example.com"
-          editable={!loading}
-        />
+        {mode === 'password' ? (
+          <>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              placeholder="you@example.com"
+              editable={!loading}
+            />
 
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder="••••••••"
-          editable={!loading}
-        />
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="••••••••"
+              editable={!loading}
+            />
 
-        <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in</Text>}
+            <TouchableOpacity style={styles.button} onPress={handlePassword} disabled={loading}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in</Text>}
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <Text style={styles.label}>WhatsApp number</Text>
+            <TextInput
+              style={[styles.input, otpSent && styles.inputDone]}
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              textContentType="telephoneNumber"
+              placeholder="98765 43210"
+              maxLength={16}
+              editable={!loading && !otpSent}
+            />
+
+            {otpSent ? (
+              <>
+                <Text style={styles.label}>Code</Text>
+                <TextInput
+                  style={[styles.input, styles.codeInput]}
+                  value={otp}
+                  onChangeText={t => setOtp(t.replace(/\D/g, ''))}
+                  keyboardType="number-pad"
+                  autoComplete="sms-otp"
+                  textContentType="oneTimeCode"
+                  placeholder="6-digit code"
+                  maxLength={6}
+                  autoFocus
+                  editable={!loading}
+                />
+                <TouchableOpacity style={styles.button} onPress={verifyOtp} disabled={loading}>
+                  {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Verify & sign in</Text>}
+                </TouchableOpacity>
+                <View style={styles.row}>
+                  <TouchableOpacity onPress={() => switchMode('otp')} disabled={loading}>
+                    <Text style={styles.link}>Change number</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={sendOtp} disabled={loading}>
+                    <Text style={styles.link}>Resend code</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <TouchableOpacity style={styles.button} onPress={sendOtp} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Send code on WhatsApp</Text>}
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+
+        <TouchableOpacity onPress={() => switchMode(mode === 'otp' ? 'password' : 'otp')} disabled={loading}>
+          <Text style={[styles.link, styles.switch]}>
+            {mode === 'otp' ? 'Sign in with email and password' : 'Sign in with WhatsApp OTP'}
+          </Text>
         </TouchableOpacity>
 
         <Text style={styles.hint}>
-          Don&apos;t have an account? Register on the CampusDesk website and wait for your school to approve it.
+          {mode === 'otp'
+            ? APP_VARIANT === 'parent'
+              ? 'Use the mobile number you gave the school. If it doesn\u2019t work, ask the school office to update it.'
+              : 'Use the WhatsApp number you verified in Settings.'
+            : 'Don\u2019t have an account? Register on the CampusDesk website and wait for your school to approve it.'}
         </Text>
       </View>
     </KeyboardAvoidingView>
@@ -136,6 +240,37 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 15,
+  },
+  inputDone: {
+    backgroundColor: '#f1f5f9',
+    color: '#475569',
+  },
+  codeInput: {
+    fontSize: 20,
+    letterSpacing: 6,
+    textAlign: 'center',
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 14,
+  },
+  link: {
+    color: '#4f46e5',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  switch: {
+    textAlign: 'center',
+    marginTop: 18,
+  },
+  notice: {
+    color: '#166534',
+    backgroundColor: '#f0fdf4',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    fontSize: 13,
   },
   error: {
     color: '#dc2626',
