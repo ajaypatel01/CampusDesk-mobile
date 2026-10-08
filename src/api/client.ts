@@ -234,6 +234,9 @@ export const resultsApi = {
     request<{ items: ExamSubjectFormat[] }>(`/exams/${examId}/mark-formats/${subjectId}`, { method: 'DELETE' }),
 
   upsertMark: (body: Json) => request('/exam-marks', { method: 'POST', body }),
+  // One student's saved marks in an exam, to pre-fill the entry form.
+  studentExamMarks: (examId: string, studentId: string) =>
+    request<{ items: SavedMark[] }>(`/exam-marks${qs({ exam_id: examId, student_id: studentId })}`),
   bulkUpsertMarks: (marks: Json[]) => request('/exam-marks/bulk', { method: 'POST', body: { marks } }),
 
   getMarksheet: (examId: string, studentId: string) => request<Marksheet>(`/marksheets${qs({ exam_id: examId, student_id: studentId })}`),
@@ -391,6 +394,15 @@ export type ClassSection = {
   homeroom_teacher_id?: string | null;
   /** Vice class teachers: same access to the section as the class teacher. */
   vice_teacher_ids?: string[];
+};
+
+export type SavedMark = {
+  subject_id: string;
+  marks_obtained: number;
+  max_marks: number;
+  is_absent: boolean;
+  grade_letter?: string;
+  components?: Record<string, number>;
 };
 
 export type MarkComponent = { key: string; label: string; max_marks: number };

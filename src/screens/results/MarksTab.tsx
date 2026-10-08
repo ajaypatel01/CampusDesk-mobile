@@ -14,6 +14,10 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
   const [examId, setExamId] = useState('');
   const [studentId, setStudentId] = useState('');
   const [marks, setMarks] = useState<Record<string, Entry>>({});
+  // Subjects changed since the saved marks were loaded -- only these are
+  // saved, so saving one subject can never overwrite the others.
+  const [touched, setTouched] = useState<Set<string>>(() => new Set());
+  const [loadingMarks, setLoadingMarks] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   // The selected exam's fields per subject (its own format, or the subject's fields).
@@ -35,22 +39,54 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
     return examFormats[sub.id] || sub.mark_components || [];
   }
 
-  // Start blank whenever the exam or student changes, so one student's
-  // numbers can never be saved against the next.
+  // Clear the form whenever the exam or student changes, so one student's
+  // numbers can never be saved against the next; the effect below then
+  // fills in what is already saved for the new pair.
   function pickExam(id: string) {
     setExamId(id);
     setExamFormats({});
     setMarks({});
+    setTouched(new Set());
     setMsg('');
   }
   function pickStudent(id: string) {
     setStudentId(id);
     setMarks({});
+    setTouched(new Set());
     setMsg('');
   }
 
+  useEffect(() => {
+    if (!examId || !studentId) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kicking off a load spinner for the fetch below
+    setLoadingMarks(true);
+    resultsApi
+      .studentExamMarks(examId, studentId)
+      .then(res => {
+        if (cancelled) return;
+        const loaded: Record<string, Entry> = {};
+        for (const m of res.items || []) {
+          loaded[m.subject_id] = {
+            is_absent: m.is_absent,
+            grade_letter: m.grade_letter || '',
+            marks_obtained: m.is_absent || m.grade_letter ? '' : String(m.marks_obtained),
+            components: Object.fromEntries(Object.entries(m.components || {}).map(([k, v]) => [k, String(v)])),
+          };
+        }
+        setMarks(loaded);
+        setTouched(new Set());
+      })
+      .catch((err: any) => !cancelled && setMsg('Error: could not load saved marks (' + err.message + '). Go back and try again before saving.'))
+      .finally(() => !cancelled && setLoadingMarks(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [examId, studentId]);
+
   function update(subjectId: string, patch: Entry) {
     setMarks(prev => ({ ...prev, [subjectId]: { ...prev[subjectId], ...patch } }));
+    setTouched(prev => new Set(prev).add(subjectId));
   }
 
   function componentTotal(sub: Subject) {
@@ -63,10 +99,12 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
     setSaving(true);
     setMsg('');
     try {
+      // Only subjects changed here are saved; the rest keep what is stored.
       // A grading-only subject with no grade picked is left out, so it is
       // never saved as 0 marks.
       const payload = ctx.subjects
         .filter(sub => {
+          if (!touched.has(sub.id)) return false;
           const entry = marks[sub.id] || {};
           return !sub.is_co_scholastic || entry.is_absent || entry.grade_letter;
         })
@@ -93,8 +131,13 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
         }
         return { ...base, marks_obtained: parseFloat(entry.marks_obtained || '0') || 0 };
       });
+      if (payload.length === 0) {
+        setMsg('Nothing changed -- no marks to save.');
+        return;
+      }
       await resultsApi.bulkUpsertMarks(payload);
-      setMsg('Marks saved successfully.');
+      setTouched(new Set());
+      setMsg(`Saved ${payload.length} subject${payload.length === 1 ? '' : 's'}.`);
     } catch (err: any) {
       setMsg('Error: ' + err.message);
     } finally {
@@ -129,7 +172,8 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
       )}
       {ctx.subjects.length === 0 && <Empty text="No subjects found for this grade. Add subjects first." />}
 
-      {examId && studentId && ctx.subjects.length > 0 && (
+      {examId && studentId && ctx.subjects.length > 0 && loadingMarks && <Empty text="Loading saved marks..." />}
+      {examId && studentId && ctx.subjects.length > 0 && !loadingMarks && (
         <>
           {ctx.subjects.map(sub => {
             const comps = fieldsFor(sub);
@@ -217,7 +261,12 @@ export default function MarksTab({ ctx }: { ctx: ResultsContext }) {
           })}
           <Message text={msg} />
           <View style={{ marginTop: 8 }}>
-            <Button label="Save Marks" onPress={save} loading={saving} />
+            <Button
+              label={touched.size > 0 ? `Save Marks (${touched.size} changed)` : 'Save Marks'}
+              onPress={save}
+              loading={saving}
+              disabled={touched.size === 0}
+            />
           </View>
         </>
       )}
