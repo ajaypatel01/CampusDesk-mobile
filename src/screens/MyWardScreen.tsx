@@ -120,8 +120,12 @@ export default function MyWardScreen() {
       .finally(() => setFeeLoading(false));
   }, [selectedWardId, currentYear]);
 
+  // An exam the school has locked for unpaid fees: its results stay hidden
+  // and the parent is told how much is due instead.
+  const lockedExam = exams.find(ex => ex.id === selectedExamId && ex.fee_locked) || null;
+
   useEffect(() => {
-    if (!selectedExamId || !selectedWardId) return;
+    if (!selectedExamId || !selectedWardId || lockedExam) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- kicking off a load spinner for the fetch below
     setMarksheetLoading(true);
     resultsApi
@@ -129,7 +133,7 @@ export default function MyWardScreen() {
       .then(setMarksheet)
       .catch(() => setMarksheet(null))
       .finally(() => setMarksheetLoading(false));
-  }, [selectedExamId, selectedWardId]);
+  }, [selectedExamId, selectedWardId, lockedExam]);
 
   function onSelectExam(id: string) {
     setSelectedExamId(id);
@@ -226,10 +230,20 @@ export default function MyWardScreen() {
               <Picker selectedValue={selectedExamId} onValueChange={v => onSelectExam(v)}>
                 <Picker.Item label="Select exam" value="" />
                 {exams.map(ex => (
-                  <Picker.Item key={ex.id} label={ex.name} value={ex.id} />
+                  <Picker.Item key={ex.id} label={ex.fee_locked ? `${ex.name} (locked)` : ex.name} value={ex.id} />
                 ))}
               </Picker>
             </View>
+
+            {lockedExam && (
+              <View style={styles.locked} accessibilityRole="alert">
+                <Text style={styles.lockedTitle}>Results are locked</Text>
+                <Text style={styles.lockedText}>
+                  ₹{Number(lockedExam.fee_due || 0).toLocaleString('en-IN')} fee is due. Please pay at the school office to see the {lockedExam.name}{' '}
+                  results. They unlock as soon as the payment is recorded.
+                </Text>
+              </View>
+            )}
 
             {marksheetLoading && <ActivityIndicator color="#4f46e5" style={{ marginTop: 12 }} />}
 
@@ -371,4 +385,7 @@ const styles = StyleSheet.create({
   feeDue: { color: '#dc2626' },
   feeClear: { color: '#16a34a' },
   feeAmount: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
+  locked: { marginTop: 12, padding: 12, borderRadius: 10, backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#f59e0b' },
+  lockedTitle: { fontSize: 15, fontWeight: '700', color: '#92400e' },
+  lockedText: { marginTop: 4, fontSize: 14, color: '#78350f', lineHeight: 20 },
 });
