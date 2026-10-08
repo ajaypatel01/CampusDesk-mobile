@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<!-- CampusDesk mark: white open book under a graduation cap. App colours: parent #2a78d6, staff #1f8a5b, admin #334155. -->
+<rect width="512" height="512" fill="#2a78d6"/>
+<g fill="#ffffff" stroke="#ffffff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M256 96 L348 134 L256 172 L164 134 Z"/>
+  <path d="M208 158 L208 186 Q256 208 304 186 L304 158 L256 178 Z"/>
+  <path d="M244 240 C206 218 160 212 120 220 L120 388 C160 380 206 386 244 410 Z"/>
+  <path d="M268 240 C306 218 352 212 392 220 L392 388 C352 380 306 386 268 410 Z"/>
+</g>
+<g fill="#ffffff"><rect x="341" y="136" width="7" height="58" rx="3.5"/><circle cx="344.5" cy="200" r="10"/></g>
+</svg>
