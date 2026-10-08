@@ -12,6 +12,14 @@ const ROLES: Record<AppVariant, string[] | null> = {
   dev: null, // development build: every role
 };
 
+/** Which login a phone number gets in this app (see /auth/otp/send). */
+export const OTP_AUDIENCE: Record<AppVariant, string> = {
+  parent: 'parent',
+  staff: 'staff',
+  admin: 'staff',
+  dev: '',
+};
+
 export const APP_AUDIENCE: Record<AppVariant, string> = {
   parent: 'Parents',
   staff: 'Staff',

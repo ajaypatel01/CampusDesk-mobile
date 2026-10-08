@@ -145,6 +145,16 @@ export const usersApi = {
   update: (id: string, body: Json) => request(`/users/${id}`, { method: 'PUT', body }),
   remove: (id: string) => request(`/users/${id}`, { method: 'DELETE' }),
   login: (email: string, password: string) => request<LoginResponse>('/auth/login', { method: 'POST', body: { email, password } }),
+  me: () => request<{ phone_number?: string | null }>('/auth/me'),
+  // Staff verify a WhatsApp number to log in with an OTP.
+  requestPhoneVerification: (phone: string) => request('/auth/phone/verify/request', { method: 'POST', body: { phone } }),
+  confirmPhoneVerification: (phone: string, otp: string) =>
+    request<{ phone_number?: string | null }>('/auth/phone/verify/confirm', { method: 'POST', body: { phone, otp } }),
+  // WhatsApp OTP login; audience picks the staff or parent login for
+  // someone who is both.
+  sendLoginOtp: (phone: string, audience: string) => request('/auth/otp/send', { method: 'POST', body: { phone, audience } }),
+  verifyLoginOtp: (phone: string, otp: string, audience: string) =>
+    request<LoginResponse>('/auth/otp/verify', { method: 'POST', body: { phone, otp, audience } }),
   register: (body: Json) => request('/auth/register', { method: 'POST', body }),
   listPending: (params: Json = {}) => request(`/users${qs({ ...params, status: 'pending' })}`),
   approve: (id: string) => request(`/users/${id}/approve`, { method: 'POST' }),
