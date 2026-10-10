@@ -15,8 +15,7 @@ import { APP_VARIANT, APP_AUDIENCE, OTP_AUDIENCE } from '../config/appVariant';
 
 export default function LoginScreen() {
   const { login, loginWithOtp } = useAuth();
-  // Parents mostly have no email login, so their app opens on WhatsApp OTP.
-  const [mode, setMode] = useState<'password' | 'otp'>(APP_VARIANT === 'parent' ? 'otp' : 'password');
+  const [mode, setMode] = useState<'password' | 'otp'>('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
@@ -41,7 +40,7 @@ export default function LoginScreen() {
 
   function handlePassword() {
     if (!email.trim() || !password) {
-      setError('Enter your email and password');
+      setError(APP_VARIANT === 'parent' ? 'Enter your mobile number and password' : 'Enter your email or mobile number and password');
       return;
     }
     run(() => login(email.trim().toLowerCase(), password), 'Login failed');
@@ -89,15 +88,17 @@ export default function LoginScreen() {
 
         {mode === 'password' ? (
           <>
-            <Text style={styles.label}>Email</Text>
+            {/* An email or a mobile number: parents use the number the school has. */}
+            <Text style={styles.label}>{APP_VARIANT === 'parent' ? 'Mobile number' : 'Email or mobile number'}</Text>
             <TextInput
               style={styles.input}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
               autoCorrect={false}
-              keyboardType="email-address"
-              placeholder="you@example.com"
+              keyboardType={APP_VARIANT === 'parent' ? 'phone-pad' : 'email-address'}
+              autoComplete={APP_VARIANT === 'parent' ? 'tel' : 'username'}
+              placeholder={APP_VARIANT === 'parent' ? '98765 43210' : 'you@example.com or 98765 43210'}
               editable={!loading}
             />
 
@@ -176,7 +177,9 @@ export default function LoginScreen() {
             ? APP_VARIANT === 'parent'
               ? 'Use the mobile number you gave the school. If it doesn\u2019t work, ask the school office to update it.'
               : 'Use the WhatsApp number you verified in Settings.'
-            : 'Don\u2019t have an account? Register on the CampusDesk website and wait for your school to approve it.'}
+            : APP_VARIANT === 'parent'
+              ? 'Use the mobile number you gave the school. Ask the school office for your password.'
+              : 'Don\u2019t have an account? Register on the CampusDesk website and wait for your school to approve it.'}
         </Text>
       </View>
     </KeyboardAvoidingView>

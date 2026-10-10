@@ -146,6 +146,12 @@ export const usersApi = {
   remove: (id: string) => request(`/users/${id}`, { method: 'DELETE' }),
   login: (email: string, password: string) => request<LoginResponse>('/auth/login', { method: 'POST', body: { email, password } }),
   me: () => request<{ phone_number?: string | null }>('/auth/me'),
+  // Logs out every other session; the response carries this one's new token.
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<LoginResponse>('/auth/password/change', {
+      method: 'POST',
+      body: { current_password: currentPassword, new_password: newPassword },
+    }),
   // Staff verify a WhatsApp number to log in with an OTP.
   requestPhoneVerification: (phone: string) => request('/auth/phone/verify/request', { method: 'POST', body: { phone } }),
   confirmPhoneVerification: (phone: string, otp: string) =>
