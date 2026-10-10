@@ -13,6 +13,10 @@ import { useAuth } from '../auth/AuthContext';
 import { usersApi } from '../api/client';
 import { APP_VARIANT, APP_AUDIENCE, OTP_AUDIENCE } from '../config/appVariant';
 
+// Only parents log in with a mobile number (password or OTP); staff and
+// admin apps use email only. The dev build keeps both for testing.
+const PHONE_LOGIN = APP_VARIANT === 'parent' || APP_VARIANT === 'dev';
+
 export default function LoginScreen() {
   const { login, loginWithOtp } = useAuth();
   const [mode, setMode] = useState<'password' | 'otp'>('password');
@@ -40,7 +44,9 @@ export default function LoginScreen() {
 
   function handlePassword() {
     if (!email.trim() || !password) {
-      setError(APP_VARIANT === 'parent' ? 'Enter your mobile number and password' : 'Enter your email or mobile number and password');
+      setError(
+        APP_VARIANT === 'parent' ? 'Enter your mobile number and password' : PHONE_LOGIN ? 'Enter your email or mobile number and password' : 'Enter your email and password',
+      );
       return;
     }
     run(() => login(email.trim().toLowerCase(), password), 'Login failed');
@@ -89,7 +95,7 @@ export default function LoginScreen() {
         {mode === 'password' ? (
           <>
             {/* An email or a mobile number: parents use the number the school has. */}
-            <Text style={styles.label}>{APP_VARIANT === 'parent' ? 'Mobile number' : 'Email or mobile number'}</Text>
+            <Text style={styles.label}>{APP_VARIANT === 'parent' ? 'Mobile number' : PHONE_LOGIN ? 'Email or mobile number' : 'Email'}</Text>
             <TextInput
               style={styles.input}
               value={email}
@@ -98,7 +104,7 @@ export default function LoginScreen() {
               autoCorrect={false}
               keyboardType={APP_VARIANT === 'parent' ? 'phone-pad' : 'email-address'}
               autoComplete={APP_VARIANT === 'parent' ? 'tel' : 'username'}
-              placeholder={APP_VARIANT === 'parent' ? '98765 43210' : 'you@example.com or 98765 43210'}
+              placeholder={APP_VARIANT === 'parent' ? '98765 43210' : PHONE_LOGIN ? 'you@example.com or 98765 43210' : 'you@example.com'}
               editable={!loading}
             />
 
@@ -166,11 +172,13 @@ export default function LoginScreen() {
           </>
         )}
 
-        <TouchableOpacity onPress={() => switchMode(mode === 'otp' ? 'password' : 'otp')} disabled={loading}>
-          <Text style={[styles.link, styles.switch]}>
-            {mode === 'otp' ? 'Sign in with email and password' : 'Sign in with OTP'}
-          </Text>
-        </TouchableOpacity>
+        {PHONE_LOGIN && (
+          <TouchableOpacity onPress={() => switchMode(mode === 'otp' ? 'password' : 'otp')} disabled={loading}>
+            <Text style={[styles.link, styles.switch]}>
+              {mode === 'otp' ? 'Sign in with password' : 'Sign in with OTP'}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <Text style={styles.hint}>
           {mode === 'otp'

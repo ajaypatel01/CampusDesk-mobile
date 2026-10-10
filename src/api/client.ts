@@ -147,7 +147,11 @@ export const usersApi = {
   update: (id: string, body: Json) => request(`/users/${id}`, { method: 'PUT', body }),
   remove: (id: string) => request(`/users/${id}`, { method: 'DELETE' }),
   login: (email: string, password: string) => request<LoginResponse>('/auth/login', { method: 'POST', body: { email, password } }),
-  me: () => request<{ phone_number?: string | null }>('/auth/me'),
+  me: () => request<{ phone_number?: string | null; email?: string; email_verified?: boolean }>('/auth/me'),
+  // Parents confirm an email (6-digit code) before they can change their password.
+  requestEmailVerification: (email: string) => request('/auth/email/verify/request', { method: 'POST', body: { email } }),
+  confirmEmailVerification: (email: string, code: string) =>
+    request<{ email?: string; email_verified?: boolean }>('/auth/email/verify/confirm', { method: 'POST', body: { email, code } }),
   // Logs out every other session; the response carries this one's new token.
   changePassword: (currentPassword: string, newPassword: string) =>
     request<LoginResponse>('/auth/password/change', {

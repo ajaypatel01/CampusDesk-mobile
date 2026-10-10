@@ -74,10 +74,9 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ChangePasswordCard />
+      {user?.role === 'parent' ? <ParentPasswordSection /> : <ChangePasswordCard />}
 
       {/* Parents log in with the number the school has for them. */}
-      {user?.role !== 'parent' && <OtpLoginCard />}
 
       {isAdmin && (
         <>
@@ -117,6 +116,98 @@ export default function SettingsScreen() {
         </>
       )}
     </ScrollView>
+  );
+}
+
+/**
+ * Parents first add an email and confirm it with an emailed code; only then
+ * is Change password shown (the server enforces the same).
+ */
+function ParentPasswordSection() {
+  const [verified, setVerified] = useState<boolean | null>(null);
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    usersApi
+      .me()
+      .then(me => {
+        setVerified(!!me.email_verified);
+        if (me.email_verified && me.email) setEmail(me.email);
+      })
+      .catch(() => setVerified(false));
+  }, []);
+
+  async function submit() {
+    setError('');
+    setBusy(true);
+    try {
+      if (!sent) {
+        await usersApi.requestEmailVerification(email.trim());
+        setSent(true);
+      } else {
+        await usersApi.confirmEmailVerification(email.trim(), code.trim());
+        setVerified(true);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (verified === null) return null;
+  if (verified) {
+    return (
+      <>
+        <Text style={styles.waText}>
+          Email: <Text style={styles.waStrong}>{email}</Text>
+        </Text>
+        <ChangePasswordCard />
+      </>
+    );
+  }
+  return (
+    <>
+      <Text style={styles.sectionTitle}>Add your email</Text>
+      <View style={styles.card}>
+        <Text style={styles.waText}>Add and verify your email to be able to change your password.</Text>
+        {error ? <Text style={styles.waError}>{error}</Text> : null}
+        <TextInput
+          style={styles.waInput}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!busy && !sent}
+        />
+        {sent && (
+          <TextInput
+            style={styles.waInput}
+            value={code}
+            onChangeText={t => setCode(t.replace(/\D/g, ''))}
+            placeholder="6-digit code from your email"
+            keyboardType="number-pad"
+            maxLength={6}
+            autoFocus
+            editable={!busy}
+          />
+        )}
+        <TouchableOpacity style={styles.waBtn} onPress={submit} disabled={busy}>
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.waBtnText}>{sent ? 'Verify' : 'Send code'}</Text>}
+        </TouchableOpacity>
+        {sent && (
+          <TouchableOpacity onPress={() => { setSent(false); setCode(''); }} disabled={busy}>
+            <Text style={styles.waLink}>Change email</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </>
   );
 }
 
@@ -162,108 +253,6 @@ function ChangePasswordCard() {
         <TouchableOpacity style={styles.waBtn} onPress={save} disabled={busy}>
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.waBtnText}>Change password</Text>}
         </TouchableOpacity>
-      </View>
-    </>
-  );
-}
-
-/** Verify a mobile number so this account can log in with an OTP. */
-function OtpLoginCard() {
-  const [verified, setVerified] = useState<string | null>(null);
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [sent, setSent] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    usersApi.me().then(me => setVerified(me.phone_number || null)).catch(() => {});
-  }, []);
-
-  async function send() {
-    setError('');
-    setBusy(true);
-    try {
-      await usersApi.requestPhoneVerification(phone);
-      setSent(true);
-      setOtp('');
-    } catch (err: any) {
-      setError(err.message || 'Could not send the code');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function confirm() {
-    setError('');
-    setBusy(true);
-    try {
-      const me = await usersApi.confirmPhoneVerification(phone, otp.trim());
-      setVerified(me.phone_number || phone);
-      setSent(false);
-      setPhone('');
-    } catch (err: any) {
-      setError(err.message || 'Invalid or expired code');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <>
-      <Text style={styles.sectionTitle}>Login with OTP</Text>
-      <View style={styles.card}>
-        {verified && !sent ? (
-          <>
-            <Text style={styles.waText}>
-              Verified: <Text style={styles.waStrong}>{verified}</Text>. You can sign in with a code sent to this
-              number.
-            </Text>
-            <TouchableOpacity onPress={() => setVerified(null)}>
-              <Text style={styles.waLink}>Change number</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <Text style={styles.waText}>Verify your mobile number to sign in with a code instead of your password.</Text>
-            {error ? <Text style={styles.waError}>{error}</Text> : null}
-            <TextInput
-              style={styles.waInput}
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              placeholder="98765 43210"
-              maxLength={16}
-              editable={!busy && !sent}
-            />
-            {sent && (
-              <TextInput
-                style={styles.waInput}
-                value={otp}
-                onChangeText={t => setOtp(t.replace(/\D/g, ''))}
-                keyboardType="number-pad"
-                autoComplete="sms-otp"
-                textContentType="oneTimeCode"
-                placeholder="6-digit code"
-                maxLength={6}
-                autoFocus
-                editable={!busy}
-              />
-            )}
-            <TouchableOpacity style={styles.waBtn} onPress={sent ? confirm : send} disabled={busy}>
-              {busy ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.waBtnText}>{sent ? 'Verify' : 'Send code'}</Text>
-              )}
-            </TouchableOpacity>
-            {sent && (
-              <TouchableOpacity onPress={() => setSent(false)} disabled={busy}>
-                <Text style={styles.waLink}>Change number</Text>
-              </TouchableOpacity>
-            )}
-          </>
-        )}
       </View>
     </>
   );
