@@ -3,7 +3,7 @@
     "name": "CampusDesk (dev)",
     "slug": "campusdesk-mobile",
     "scheme": "campusdesk",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icons/icon-parent.png",
     "userInterfaceStyle": "light",
@@ -18,7 +18,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.campusdesk.dev",
-      "versionCode": 6
+      "versionCode": 7
     },
     "web": {
       "favicon": "./assets/favicon.png"
