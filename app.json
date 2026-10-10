@@ -3,7 +3,7 @@
     "name": "CampusDesk (dev)",
     "slug": "campusdesk-mobile",
     "scheme": "campusdesk",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/icons/icon-parent.png",
     "userInterfaceStyle": "light",
@@ -18,7 +18,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.campusdesk.dev",
-      "versionCode": 7
+      "versionCode": 8
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -28,6 +28,13 @@
       "expo-router",
       "expo-font",
       "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "CampusDesk needs access to your photos so teachers can add event photos to the class gallery.",
+          "cameraPermission": "CampusDesk uses the camera so teachers can take event photos for the class gallery."
+        }
+      ],
       [
         "expo-build-properties",
         {

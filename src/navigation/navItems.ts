@@ -31,6 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/broadcasts', label: 'Broadcasts', icon: 'megaphone-outline', deny: ['registrar', 'parent', 'teacher'], status: 'live' },
   { href: '/results', label: 'Results', icon: 'bar-chart-outline', deny: ['parent'], status: 'live' },
   { href: '/homework', label: 'Homework', icon: 'book-outline', deny: ['parent'], status: 'live' },
+  { href: '/gallery', label: 'Class Gallery', icon: 'images-outline', status: 'live' },
   { href: '/transport', label: 'Transport', icon: 'bus-outline', deny: ['parent', 'teacher'], status: 'live' },
   { href: '/rte', label: 'RTE', icon: 'shield-checkmark-outline', deny: ['parent', 'teacher'], status: 'live' },
   { href: '/books', label: 'Books', icon: 'library-outline', deny: ['registrar', 'parent', 'teacher'], status: 'live' },
