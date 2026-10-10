@@ -20,6 +20,8 @@ type AuthContextValue = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithOtp: (phone: string, otp: string) => Promise<void>;
+  /** Switch to a token the server just issued (e.g. after a password change). */
+  replaceSession: (token: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -70,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, loginWithOtp, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, loginWithOtp, replaceSession: startSession, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {

@@ -74,6 +74,8 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
+      <ChangePasswordCard />
+
       {/* Parents log in with the number the school has for them. */}
       {user?.role !== 'parent' && <WhatsAppLoginCard />}
 
@@ -115,6 +117,53 @@ export default function SettingsScreen() {
         </>
       )}
     </ScrollView>
+  );
+}
+
+/** Change your own password; other devices are signed out. */
+function ChangePasswordCard() {
+  const { replaceSession } = useAuth();
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  async function save() {
+    setError('');
+    setDone(false);
+    if (next.length < 6) return setError('The new password must be at least 6 characters');
+    if (next !== confirm) return setError('The new passwords do not match');
+    setBusy(true);
+    try {
+      const res = await usersApi.changePassword(current, next);
+      await replaceSession(res.token);
+      setCurrent('');
+      setNext('');
+      setConfirm('');
+      setDone(true);
+    } catch (err: any) {
+      setError(err.message || 'Could not change the password');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <Text style={styles.sectionTitle}>Change password</Text>
+      <View style={styles.card}>
+        {error ? <Text style={styles.waError}>{error}</Text> : null}
+        {done ? <Text style={styles.waDone}>Password changed. Other devices have been signed out.</Text> : null}
+        <TextInput style={styles.waInput} value={current} onChangeText={setCurrent} secureTextEntry placeholder="Current password" editable={!busy} />
+        <TextInput style={styles.waInput} value={next} onChangeText={setNext} secureTextEntry placeholder="New password (at least 6 characters)" editable={!busy} />
+        <TextInput style={styles.waInput} value={confirm} onChangeText={setConfirm} secureTextEntry placeholder="Confirm new password" editable={!busy} />
+        <TouchableOpacity style={styles.waBtn} onPress={save} disabled={busy}>
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.waBtnText}>Change password</Text>}
+        </TouchableOpacity>
+      </View>
+    </>
   );
 }
 
@@ -254,6 +303,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginTop: 10,
   },
+  waDone: { color: '#166534', backgroundColor: '#f0fdf4', padding: 8, borderRadius: 6, marginBottom: 4, fontSize: 12 },
   waBtn: { backgroundColor: '#4f46e5', borderRadius: 8, paddingVertical: 11, alignItems: 'center', marginTop: 12 },
   waBtnText: { color: '#fff', fontWeight: '600' },
   waLink: { color: '#4f46e5', fontSize: 13, fontWeight: '600', marginTop: 12, textAlign: 'center' },
