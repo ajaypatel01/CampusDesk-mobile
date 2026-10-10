@@ -46,6 +46,8 @@ function fmtDate(d?: string) {
   return new Date(d).toLocaleDateString('en-IN');
 }
 
+const fmtMarks = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+
 export default function MyWardScreen() {
   const { user, logout } = useAuth();
 
@@ -105,8 +107,10 @@ export default function MyWardScreen() {
     resultsApi
       .wardExams(selectedWardId, currentYear.id)
       .then(res => {
-        setExams(res.items || []);
-        setSelectedExamId('');
+        const list = res.items || [];
+        setExams(list);
+        // Open the most recent published exam straight away.
+        setSelectedExamId(list.length ? list[list.length - 1].id : '');
         setMarksheet(null);
       })
       .catch(() => setExams([]));
@@ -199,6 +203,109 @@ export default function MyWardScreen() {
         </View>
       )}
 
+      <Text style={styles.sectionTitle}>Results</Text>
+      <View style={styles.card}>
+        {exams.length === 0 ? (
+          <Text style={styles.emptyInline}>No results have been published yet</Text>
+        ) : (
+          <>
+            {exams.length > 1 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.examChips}>
+                {exams.map(ex => {
+                  const on = ex.id === selectedExamId;
+                  return (
+                    <TouchableOpacity
+                      key={ex.id}
+                      style={[styles.examChip, on && styles.examChipOn]}
+                      onPress={() => onSelectExam(ex.id)}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: on }}
+                    >
+                      <Text style={[styles.examChipText, on && styles.examChipTextOn]}>
+                        {ex.fee_locked ? '🔒 ' : ''}
+                        {ex.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+
+            {lockedExam && (
+              <View style={styles.locked} accessibilityRole="alert">
+                <Text style={styles.lockedTitle}>{lockedExam.name} results are ready, but locked</Text>
+                <Text style={styles.lockedText}>
+                  ₹{Number(lockedExam.fee_due || 0).toLocaleString('en-IN')} fee is due. Please pay at the school office; the results open here
+                  as soon as the payment is recorded.
+                </Text>
+              </View>
+            )}
+
+            {marksheetLoading && <ActivityIndicator color="#4f46e5" style={{ marginTop: 12 }} />}
+
+            {marksheet && !lockedExam && (
+              <View>
+                <View style={[styles.summary, { borderLeftColor: marksheet.result === 'Pass' ? '#16a34a' : '#dc2626' }]}>
+                  <Text style={styles.pct}>{marksheet.percentage.toFixed(1)}%</Text>
+                  <Text style={styles.pctLabel}>{marksheet.exam_name}</Text>
+                  <View style={styles.facts}>
+                    <View>
+                      <Text style={styles.factLabel}>RESULT</Text>
+                      <Text style={[styles.factValue, { color: marksheet.result === 'Pass' ? '#16a34a' : '#dc2626' }]}>
+                        {marksheet.result || '-'}
+                      </Text>
+                    </View>
+                    <View>
+                      <Text style={styles.factLabel}>GRADE</Text>
+                      <Text style={styles.factValue}>{marksheet.overall_grade || '-'}</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.factLabel}>TOTAL</Text>
+                      <Text style={styles.factValue}>
+                        {fmtMarks(marksheet.total_obtained)}/{marksheet.total_max}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {marksheet.rows.map((row, i) => {
+                  const graded = !!row.grade_letter;
+                  const failed = row.status === 'Fail' && !row.is_co_scholastic;
+                  return (
+                    <View key={i} style={[styles.subject, i === marksheet.rows.length - 1 && { borderBottomWidth: 0 }]}>
+                      <View style={styles.subjectTop}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.subjectName}>{row.subject_name}</Text>
+                          {row.is_co_scholastic && <Text style={styles.subjectNote}>Not counted in total</Text>}
+                        </View>
+                        <Text style={[styles.subjectMarks, failed && { color: '#dc2626' }]}>
+                          {row.is_absent ? 'Absent' : graded ? `Grade ${row.grade_letter}` : fmtMarks(row.marks_obtained)}
+                          {!row.is_absent && !graded && <Text style={styles.subjectMax}> / {row.max_marks}</Text>}
+                        </Text>
+                      </View>
+                      {!row.is_absent && !graded && (
+                        <View style={styles.barRow}>
+                          <View style={styles.bar}>
+                            <View
+                              style={[
+                                styles.barFill,
+                                { width: `${Math.min(100, Math.max(0, row.percentage || 0))}%`, backgroundColor: failed ? '#dc2626' : '#4f46e5' },
+                              ]}
+                            />
+                          </View>
+                          <Text style={styles.subjectGrade}>{row.grade}</Text>
+                        </View>
+                      )}
+                      {failed && <Text style={styles.needs}>Needs improvement</Text>}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        )}
+      </View>
+
       <Text style={styles.sectionTitle}>Class Homework</Text>
       <View style={styles.card}>
         {homework.length === 0 ? (
@@ -217,61 +324,6 @@ export default function MyWardScreen() {
               </View>
             </View>
           ))
-        )}
-      </View>
-
-      <Text style={styles.sectionTitle}>Results</Text>
-      <View style={styles.card}>
-        {exams.length === 0 ? (
-          <Text style={styles.emptyInline}>No published exams yet</Text>
-        ) : (
-          <>
-            <View style={styles.pickerWrapInline}>
-              <Picker selectedValue={selectedExamId} onValueChange={v => onSelectExam(v)}>
-                <Picker.Item label="Select exam" value="" />
-                {exams.map(ex => (
-                  <Picker.Item key={ex.id} label={ex.fee_locked ? `${ex.name} (locked)` : ex.name} value={ex.id} />
-                ))}
-              </Picker>
-            </View>
-
-            {lockedExam && (
-              <View style={styles.locked} accessibilityRole="alert">
-                <Text style={styles.lockedTitle}>Results are locked</Text>
-                <Text style={styles.lockedText}>
-                  ₹{Number(lockedExam.fee_due || 0).toLocaleString('en-IN')} fee is due. Please pay at the school office to see the {lockedExam.name}{' '}
-                  results. They unlock as soon as the payment is recorded.
-                </Text>
-              </View>
-            )}
-
-            {marksheetLoading && <ActivityIndicator color="#4f46e5" style={{ marginTop: 12 }} />}
-
-            {marksheet && (
-              <View style={styles.marksheet}>
-                <Text style={styles.marksheetTitle}>
-                  {marksheet.exam_name} · {marksheet.academic_year}
-                </Text>
-                {marksheet.rows.map((row, i) => (
-                  <View key={i} style={styles.marksRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.marksSubject}>{row.subject_name}</Text>
-                      {row.is_co_scholastic && <Text style={styles.marksCoScholastic}>Co-scholastic — not in total</Text>}
-                    </View>
-                    <Text style={styles.marksValue}>
-                      {row.is_absent ? 'Absent' : row.grade_letter ? `Grade ${row.grade_letter}` : `${row.marks_obtained}/${row.max_marks}`}
-                    </Text>
-                    <Text style={[styles.marksStatus, { color: row.status === 'Pass' ? '#16a34a' : row.status === 'Fail' ? '#dc2626' : '#64748b' }]}>
-                      {row.status}
-                    </Text>
-                  </View>
-                ))}
-                <Text style={styles.marksTotal}>
-                  Total: {marksheet.total_obtained}/{marksheet.total_max} ({marksheet.percentage.toFixed(1)}%) · {marksheet.result}
-                </Text>
-              </View>
-            )}
-          </>
         )}
       </View>
 
@@ -357,6 +409,28 @@ const styles = StyleSheet.create({
   homeworkDue: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   badgeText: { fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
+  examChips: { gap: 8, paddingBottom: 10 },
+  examChip: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#fff' },
+  examChipOn: { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
+  examChipText: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  examChipTextOn: { color: '#fff' },
+  summary: { borderWidth: 1, borderColor: '#e2e8f0', borderLeftWidth: 5, borderRadius: 10, padding: 14, marginBottom: 8 },
+  pct: { fontSize: 34, fontWeight: '800', color: '#0f172a' },
+  pctLabel: { fontSize: 13, color: '#64748b', marginBottom: 10 },
+  facts: { flexDirection: 'row', gap: 24 },
+  factLabel: { fontSize: 11, color: '#94a3b8', letterSpacing: 0.5 },
+  factValue: { fontSize: 17, fontWeight: '700', color: '#0f172a' },
+  subject: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e2e8f0' },
+  subjectTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  subjectName: { fontSize: 15, fontWeight: '600', color: '#1e293b' },
+  subjectNote: { fontSize: 11, color: '#94a3b8' },
+  subjectMarks: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
+  subjectMax: { fontSize: 14, fontWeight: '400', color: '#94a3b8' },
+  barRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
+  bar: { flex: 1, height: 8, backgroundColor: '#f1f5f9', borderRadius: 4, overflow: 'hidden' },
+  barFill: { height: 8, borderRadius: 4 },
+  subjectGrade: { fontSize: 12, fontWeight: '600', color: '#475569', minWidth: 24, textAlign: 'right' },
+  needs: { fontSize: 11, fontWeight: '600', color: '#dc2626', marginTop: 4 },
   marksheet: { marginTop: 12 },
   marksheetTitle: { fontWeight: '700', marginBottom: 8, color: '#0f172a' },
   marksRow: {
