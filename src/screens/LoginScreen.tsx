@@ -52,10 +52,10 @@ export default function LoginScreen() {
       return;
     }
     run(async () => {
-      await usersApi.sendLoginOtp(phone, OTP_AUDIENCE[APP_VARIANT]);
+      const res = await usersApi.sendLoginOtp(phone, OTP_AUDIENCE[APP_VARIANT]);
       setOtpSent(true);
       setOtp('');
-      setNotice('We sent a 6-digit code to this number on WhatsApp.');
+      setNotice(`We sent a 6-digit code to this number ${res.channel === 'whatsapp' ? 'on WhatsApp' : 'by SMS'}.`);
     }, 'Could not send the code');
   }
 
@@ -118,7 +118,7 @@ export default function LoginScreen() {
           </>
         ) : (
           <>
-            <Text style={styles.label}>WhatsApp number</Text>
+            <Text style={styles.label}>Mobile number</Text>
             <TextInput
               style={[styles.input, otpSent && styles.inputDone]}
               value={phone}
@@ -160,7 +160,7 @@ export default function LoginScreen() {
               </>
             ) : (
               <TouchableOpacity style={styles.button} onPress={sendOtp} disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Send code on WhatsApp</Text>}
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Send code</Text>}
               </TouchableOpacity>
             )}
           </>
@@ -168,7 +168,7 @@ export default function LoginScreen() {
 
         <TouchableOpacity onPress={() => switchMode(mode === 'otp' ? 'password' : 'otp')} disabled={loading}>
           <Text style={[styles.link, styles.switch]}>
-            {mode === 'otp' ? 'Sign in with email and password' : 'Sign in with WhatsApp OTP'}
+            {mode === 'otp' ? 'Sign in with email and password' : 'Sign in with OTP'}
           </Text>
         </TouchableOpacity>
 
@@ -176,7 +176,7 @@ export default function LoginScreen() {
           {mode === 'otp'
             ? APP_VARIANT === 'parent'
               ? 'Use the mobile number you gave the school. If it doesn\u2019t work, ask the school office to update it.'
-              : 'Use the WhatsApp number you verified in Settings.'
+              : 'Use the mobile number you verified in Settings.'
             : APP_VARIANT === 'parent'
               ? 'Use the mobile number you gave the school. Ask the school office for your password.'
               : 'Don\u2019t have an account? Register on the CampusDesk website and wait for your school to approve it.'}
