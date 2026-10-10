@@ -138,6 +138,8 @@ export const guardiansApi = {
   link: (body: Json) => request('/guardians/link', { method: 'POST', body }),
 };
 
+export type OtpSent = { status: string; channel?: 'sms' | 'whatsapp' };
+
 export const usersApi = {
   list: (params: Json = {}) => request(`/users${qs(params)}`),
   get: (id: string) => request(`/users/${id}`),
@@ -152,13 +154,16 @@ export const usersApi = {
       method: 'POST',
       body: { current_password: currentPassword, new_password: newPassword },
     }),
-  // Staff verify a WhatsApp number to log in with an OTP.
-  requestPhoneVerification: (phone: string) => request('/auth/phone/verify/request', { method: 'POST', body: { phone } }),
+  // Staff verify a mobile number to log in with an OTP. channel says where
+  // the code went: 'sms' or 'whatsapp'.
+  requestPhoneVerification: (phone: string) =>
+    request<OtpSent>('/auth/phone/verify/request', { method: 'POST', body: { phone } }),
   confirmPhoneVerification: (phone: string, otp: string) =>
     request<{ phone_number?: string | null }>('/auth/phone/verify/confirm', { method: 'POST', body: { phone, otp } }),
-  // WhatsApp OTP login; audience picks the staff or parent login for
-  // someone who is both.
-  sendLoginOtp: (phone: string, audience: string) => request('/auth/otp/send', { method: 'POST', body: { phone, audience } }),
+  // OTP login (SMS or WhatsApp); audience picks the staff or parent login
+  // for someone who is both.
+  sendLoginOtp: (phone: string, audience: string) =>
+    request<OtpSent>('/auth/otp/send', { method: 'POST', body: { phone, audience } }),
   verifyLoginOtp: (phone: string, otp: string, audience: string) =>
     request<LoginResponse>('/auth/otp/verify', { method: 'POST', body: { phone, otp, audience } }),
   register: (body: Json) => request('/auth/register', { method: 'POST', body }),

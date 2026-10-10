@@ -77,7 +77,7 @@ export default function SettingsScreen() {
       <ChangePasswordCard />
 
       {/* Parents log in with the number the school has for them. */}
-      {user?.role !== 'parent' && <WhatsAppLoginCard />}
+      {user?.role !== 'parent' && <OtpLoginCard />}
 
       {isAdmin && (
         <>
@@ -167,8 +167,8 @@ function ChangePasswordCard() {
   );
 }
 
-/** Verify a WhatsApp number so this account can log in with an OTP. */
-function WhatsAppLoginCard() {
+/** Verify a mobile number so this account can log in with an OTP. */
+function OtpLoginCard() {
   const [verified, setVerified] = useState<string | null>(null);
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -211,12 +211,12 @@ function WhatsAppLoginCard() {
 
   return (
     <>
-      <Text style={styles.sectionTitle}>WhatsApp login</Text>
+      <Text style={styles.sectionTitle}>Login with OTP</Text>
       <View style={styles.card}>
         {verified && !sent ? (
           <>
             <Text style={styles.waText}>
-              Verified: <Text style={styles.waStrong}>{verified}</Text>. You can sign in with a WhatsApp code sent to this
+              Verified: <Text style={styles.waStrong}>{verified}</Text>. You can sign in with a code sent to this
               number.
             </Text>
             <TouchableOpacity onPress={() => setVerified(null)}>
@@ -225,7 +225,7 @@ function WhatsAppLoginCard() {
           </>
         ) : (
           <>
-            <Text style={styles.waText}>Verify your WhatsApp number to sign in with a code instead of your password.</Text>
+            <Text style={styles.waText}>Verify your mobile number to sign in with a code instead of your password.</Text>
             {error ? <Text style={styles.waError}>{error}</Text> : null}
             <TextInput
               style={styles.waInput}
@@ -244,7 +244,7 @@ function WhatsAppLoginCard() {
                 keyboardType="number-pad"
                 autoComplete="sms-otp"
                 textContentType="oneTimeCode"
-                placeholder="6-digit code from WhatsApp"
+                placeholder="6-digit code"
                 maxLength={6}
                 autoFocus
                 editable={!busy}
@@ -254,7 +254,7 @@ function WhatsAppLoginCard() {
               {busy ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.waBtnText}>{sent ? 'Verify' : 'Send code on WhatsApp'}</Text>
+                <Text style={styles.waBtnText}>{sent ? 'Verify' : 'Send code'}</Text>
               )}
             </TouchableOpacity>
             {sent && (
