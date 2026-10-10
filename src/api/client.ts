@@ -358,6 +358,68 @@ export const booksApi = {
   recordReceipt: (body: Json) => request('/book-receipts', { method: 'POST', body }),
 };
 
+// ---- Class gallery & class documents (files in S3; links last ~2h) ----
+
+export type GallerySection = {
+  id: string;
+  grade_name: string;
+  section_name: string;
+  academic_year: string;
+  is_current_year: boolean;
+  children?: string;
+  photo_count: number;
+  document_count: number;
+};
+
+export type GalleryItem = {
+  id: string;
+  kind: 'photo' | 'document';
+  event: string;
+  event_date?: string;
+  file_name: string;
+  content_type: string;
+  size_bytes: number;
+  uploaded_by_name?: string;
+  created_at: string;
+  url?: string;
+  thumb_url?: string;
+  can_delete: boolean;
+};
+
+export const classMediaApi = {
+  sections: (schoolId?: string) =>
+    request<{ items: GallerySection[]; storage_ready: boolean }>(`/class-media/sections${qs({ school_id: schoolId })}`),
+  list: (sectionId: string, kind: 'photo' | 'document') =>
+    request<{ items: GalleryItem[]; can_upload: boolean }>(`/class-media${qs({ section_id: sectionId, kind })}`),
+  remove: (id: string) => request(`/class-media/${id}`, { method: 'DELETE' }),
+  /** One file per request (the server caps each upload at 25 MB). */
+  upload: async (
+    sectionId: string,
+    kind: 'photo' | 'document',
+    file: { uri: string; name: string; type: string },
+    event: string,
+    eventDate: string,
+  ) => {
+    const token = await getToken();
+    const fd = new FormData();
+    fd.append('section_id', sectionId);
+    fd.append('kind', kind);
+    fd.append('event', event);
+    if (eventDate) fd.append('event_date', eventDate);
+    // React Native sends {uri, name, type} as a file part.
+    fd.append('files', file as unknown as Blob);
+    const res = await fetch(`${BASE_URL}/class-media`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    });
+    if (res.status === 413) throw new ApiError('File too large', 413);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(data.error || `Upload failed (${res.status})`, res.status);
+    return data;
+  },
+};
+
 export const configApi = {
   get: () => request<{ whatsapp_enabled: boolean }>('/config'),
 };
