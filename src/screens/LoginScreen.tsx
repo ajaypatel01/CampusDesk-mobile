@@ -187,7 +187,7 @@ export default function LoginScreen() {
               : 'Use the mobile number you verified in Settings.'
             : APP_VARIANT === 'parent'
               ? 'Use the mobile number you gave the school. Ask the school office for your password.'
-              : 'Don\u2019t have an account? Register on the CampusDesk website and wait for your school to approve it.'}
+              : 'No account yet? Ask your school office to create one for you.'}
         </Text>
       </View>
     </KeyboardAvoidingView>
